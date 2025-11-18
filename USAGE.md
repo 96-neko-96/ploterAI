@@ -26,7 +26,7 @@ python app/main.py
 
 1. トップメニューから「API設定」をクリック
 2. APIキーを入力
-3. モデルを選択（デフォルト: gemini-2.0-flash-exp）
+3. モデルを選択（デフォルト: gemini-2.0-flash）
 4. 必要に応じてパラメータを調整:
    - Temperature: 0.0-1.0（高いほど創造的）
    - Max Tokens: 1000-8000（生成する最大トークン数）

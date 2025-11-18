@@ -17,7 +17,12 @@ Gemini APIは、GoogleのAIモデル「Gemini」を利用するためのAPIで�
 
 ### 利用可能なモデル
 
-- **gemini-2.0-flash-exp** (推奨): 最新の高速モデル
+- **gemini-2.5-pro**: 最高品質の出力（最新）
+- **gemini-2.5-flash**: バランスの取れた高速モデル（最新）
+- **gemini-2.5-flash-lite**: 超高速な軽量モデル（最新）
+- **gemini-2.0-flash** (推奨): 高速で安定したモデル
+- **gemini-2.0-flash-lite**: 高速な軽量モデル
+- **gemini-2.0-flash-exp**: 実験的な高速モデル
 - **gemini-1.5-pro**: 高品質な出力
 - **gemini-1.5-flash**: 高速な応答
 

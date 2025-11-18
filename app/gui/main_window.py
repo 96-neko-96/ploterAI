@@ -304,7 +304,7 @@ class MainWindow(ctk.CTk):
             api_config = self.config.get_api_config()
             self.gemini_client = GeminiClient(
                 api_key=api_key,
-                model=api_config.get('model', 'gemini-2.0-flash-exp')
+                model=api_config.get('model', 'gemini-2.0-flash')
             )
             self.gemini_client.update_generation_config(
                 temperature=api_config.get('temperature', 0.7),

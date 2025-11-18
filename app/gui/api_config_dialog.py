@@ -87,11 +87,16 @@ class APIConfigDialog(ctk.CTkToplevel):
         )
         model_label.pack(anchor="w", pady=(0, 5))
 
-        self.model_var = ctk.StringVar(value="gemini-2.0-flash-exp")
+        self.model_var = ctk.StringVar(value="gemini-2.0-flash")
         self.model_menu = ctk.CTkOptionMenu(
             main_frame,
             width=500,
             values=[
+                "gemini-2.5-pro",
+                "gemini-2.5-flash",
+                "gemini-2.5-flash-lite",
+                "gemini-2.0-flash",
+                "gemini-2.0-flash-lite",
                 "gemini-2.0-flash-exp",
                 "gemini-1.5-pro",
                 "gemini-1.5-flash"

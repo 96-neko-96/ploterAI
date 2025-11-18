@@ -54,7 +54,7 @@ class Config:
         return {
             'api': {
                 'encrypted_key': None,
-                'model': 'gemini-2.0-flash-exp',
+                'model': 'gemini-2.0-flash',
                 'temperature': 0.7,
                 'max_tokens': 4000,
                 'top_p': 0.9
