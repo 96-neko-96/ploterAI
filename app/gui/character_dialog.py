@@ -237,8 +237,9 @@ class AICharacterDialog(ctk.CTkToplevel):
         self.result = None
 
         self.title("AIでキャラクター生成")
-        self.geometry("600x300")
-        self.resizable(False, False)
+        self.geometry("700x450")
+        self.minsize(600, 350)  # 最小サイズを設定
+        self.resizable(True, True)  # リサイズ可能に
 
         # モーダルにする
         self.transient(parent)
@@ -248,8 +249,8 @@ class AICharacterDialog(ctk.CTkToplevel):
 
         # ウィンドウを中央に配置
         self.update_idletasks()
-        x = (self.winfo_screenwidth() // 2) - (600 // 2)
-        y = (self.winfo_screenheight() // 2) - (300 // 2)
+        x = (self.winfo_screenwidth() // 2) - (700 // 2)
+        y = (self.winfo_screenheight() // 2) - (450 // 2)
         self.geometry(f"+{x}+{y}")
 
     def _create_widgets(self):
