@@ -126,6 +126,14 @@ class Config:
         if 'api' not in self.settings:
             self.settings['api'] = self._default_config()['api']
             self.save_config()
+
+        # 必要なキーが存在することを確認
+        required_keys = ['model', 'temperature', 'max_tokens', 'top_p']
+        api = self.settings['api']
+        if not all(key in api for key in required_keys):
+            self.settings['api'] = self._default_config()['api']
+            self.save_config()
+
         return self.settings['api']
 
     def set_ui_theme(self, mode: str, color: str):
@@ -144,6 +152,13 @@ class Config:
         if 'ui' not in self.settings:
             self.settings['ui'] = self._default_config()['ui']
             self.save_config()
+
+        # 必要なキーが存在することを確認
+        ui = self.settings['ui']
+        if 'theme_mode' not in ui or 'color_theme' not in ui:
+            self.settings['ui'] = self._default_config()['ui']
+            self.save_config()
+
         return self.settings['ui']
 
     def set_last_project(self, project_path: Optional[str]):
