@@ -16,8 +16,9 @@ class StyleDialog(ctk.CTkToplevel):
         self.result = None
 
         self.title("文体スタイル設定")
-        self.geometry("500x450")
-        self.resizable(False, False)
+        self.geometry("600x550")
+        self.minsize(500, 450)  # 最小サイズを設定
+        self.resizable(True, True)  # リサイズ可能に
 
         # モーダルにする
         self.transient(parent)
@@ -28,8 +29,8 @@ class StyleDialog(ctk.CTkToplevel):
 
         # ウィンドウを中央に配置
         self.update_idletasks()
-        x = (self.winfo_screenwidth() // 2) - (500 // 2)
-        y = (self.winfo_screenheight() // 2) - (450 // 2)
+        x = (self.winfo_screenwidth() // 2) - (600 // 2)
+        y = (self.winfo_screenheight() // 2) - (550 // 2)
         self.geometry(f"+{x}+{y}")
 
     def _create_widgets(self):

@@ -25,7 +25,9 @@ class CharacterDialog(ctk.CTkToplevel):
 
         mode = "編集" if character_data else "作成"
         self.title(f"キャラクター{mode}")
-        self.geometry("800x700")
+        self.geometry("850x750")
+        self.minsize(700, 600)  # 最小サイズを設定
+        self.resizable(True, True)  # リサイズ可能に
 
         # モーダルにする
         self.transient(parent)
@@ -38,8 +40,8 @@ class CharacterDialog(ctk.CTkToplevel):
 
         # ウィンドウを中央に配置
         self.update_idletasks()
-        x = (self.winfo_screenwidth() // 2) - (800 // 2)
-        y = (self.winfo_screenheight() // 2) - (700 // 2)
+        x = (self.winfo_screenwidth() // 2) - (850 // 2)
+        y = (self.winfo_screenheight() // 2) - (750 // 2)
         self.geometry(f"+{x}+{y}")
 
     def _create_widgets(self):
@@ -235,8 +237,9 @@ class AICharacterDialog(ctk.CTkToplevel):
         self.result = None
 
         self.title("AIでキャラクター生成")
-        self.geometry("600x300")
-        self.resizable(False, False)
+        self.geometry("700x450")
+        self.minsize(600, 350)  # 最小サイズを設定
+        self.resizable(True, True)  # リサイズ可能に
 
         # モーダルにする
         self.transient(parent)
@@ -246,8 +249,8 @@ class AICharacterDialog(ctk.CTkToplevel):
 
         # ウィンドウを中央に配置
         self.update_idletasks()
-        x = (self.winfo_screenwidth() // 2) - (600 // 2)
-        y = (self.winfo_screenheight() // 2) - (300 // 2)
+        x = (self.winfo_screenwidth() // 2) - (700 // 2)
+        y = (self.winfo_screenheight() // 2) - (450 // 2)
         self.geometry(f"+{x}+{y}")
 
     def _create_widgets(self):
@@ -382,8 +385,9 @@ class ProgressDialog(ctk.CTkToplevel):
         super().__init__(parent)
 
         self.title("処理中")
-        self.geometry("350x120")
-        self.resizable(False, False)
+        self.geometry("400x150")
+        self.minsize(350, 120)  # 最小サイズを設定
+        self.resizable(True, True)  # リサイズ可能に
 
         # モーダルにする
         self.transient(parent)
@@ -418,8 +422,8 @@ class ProgressDialog(ctk.CTkToplevel):
 
         # ウィンドウを中央に配置
         self.update_idletasks()
-        x = (self.winfo_screenwidth() // 2) - (350 // 2)
-        y = (self.winfo_screenheight() // 2) - (120 // 2)
+        x = (self.winfo_screenwidth() // 2) - (400 // 2)
+        y = (self.winfo_screenheight() // 2) - (150 // 2)
         self.geometry(f"+{x}+{y}")
 
         # 表示しない（show()で表示）

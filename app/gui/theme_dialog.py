@@ -16,8 +16,9 @@ class ThemeDialog(ctk.CTkToplevel):
         self.result = None
 
         self.title("テーマ設定")
-        self.geometry("400x300")
-        self.resizable(False, False)
+        self.geometry("500x400")
+        self.minsize(400, 300)  # 最小サイズを設定
+        self.resizable(True, True)  # リサイズ可能に
 
         # モーダルにする
         self.transient(parent)
@@ -28,8 +29,8 @@ class ThemeDialog(ctk.CTkToplevel):
 
         # ウィンドウを中央に配置
         self.update_idletasks()
-        x = (self.winfo_screenwidth() // 2) - (400 // 2)
-        y = (self.winfo_screenheight() // 2) - (300 // 2)
+        x = (self.winfo_screenwidth() // 2) - (500 // 2)
+        y = (self.winfo_screenheight() // 2) - (400 // 2)
         self.geometry(f"+{x}+{y}")
 
     def _create_widgets(self):

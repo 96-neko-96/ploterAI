@@ -23,8 +23,9 @@ class APIConfigDialog(ctk.CTkToplevel):
         self.result = None
 
         self.title("API設定")
-        self.geometry("600x500")
-        self.resizable(False, False)
+        self.geometry("750x650")
+        self.minsize(600, 500)  # 最小サイズを設定
+        self.resizable(True, True)  # リサイズ可能に
 
         # モーダルにする
         self.transient(parent)
@@ -35,8 +36,8 @@ class APIConfigDialog(ctk.CTkToplevel):
 
         # ウィンドウを中央に配置
         self.update_idletasks()
-        x = (self.winfo_screenwidth() // 2) - (600 // 2)
-        y = (self.winfo_screenheight() // 2) - (500 // 2)
+        x = (self.winfo_screenwidth() // 2) - (750 // 2)
+        y = (self.winfo_screenheight() // 2) - (650 // 2)
         self.geometry(f"+{x}+{y}")
 
     def _create_widgets(self):

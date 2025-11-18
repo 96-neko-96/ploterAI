@@ -251,6 +251,29 @@ class ProjectManager:
         ]
         self.save_project()
 
+    def reorder_scenes(self, scene_ids: List[str]) -> None:
+        """
+        シーンの順序を変更
+
+        Args:
+            scene_ids: 新しい順序でのシーンIDリスト
+        """
+        if not self.current_project:
+            raise Exception("プロジェクトが開かれていません")
+
+        # 現在のシーンをIDでマッピング
+        scenes_map = {scene['id']: scene for scene in self.current_project['scenes']}
+
+        # 新しい順序でシーンリストを作成
+        new_scenes = []
+        for scene_id in scene_ids:
+            if scene_id in scenes_map:
+                new_scenes.append(scenes_map[scene_id])
+
+        # シーンリストを更新
+        self.current_project['scenes'] = new_scenes
+        self.save_project()
+
     def get_scenes(self) -> List[Dict[str, Any]]:
         """
         全シーンを取得

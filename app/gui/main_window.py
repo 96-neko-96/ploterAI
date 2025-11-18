@@ -3,9 +3,17 @@
 アプリケーションのメインGUI
 """
 import customtkinter as ctk
-from tkinter import messagebox, filedialog
+from tkinter import messagebox, filedialog, simpledialog
+import tkinter as tk
 import threading
 from typing import Optional, List, Dict, Any
+import os
+
+try:
+    from tkinterdnd2 import DND_FILES, TkinterDnD
+    TKDND_AVAILABLE = True
+except ImportError:
+    TKDND_AVAILABLE = False
 
 from app.utils.config import Config
 from app.core.project_manager import ProjectManager
@@ -38,6 +46,17 @@ class MainWindow(ctk.CTk):
         # 現在の状態
         self.current_scene_content = ""
 
+        # ドラッグ&ドロップの状態
+        self.drag_data = {
+            'dragging': False,
+            'drag_ready': False,
+            'source_index': None,
+            'source_card': None,
+            'drag_indicator': None,
+            'start_x': 0,
+            'start_y': 0
+        }
+
         # ウィンドウ設定
         self.title("Story Generator")
         self.geometry("1400x900")
@@ -51,6 +70,10 @@ class MainWindow(ctk.CTk):
         self._create_menu()
         self._create_widgets()
 
+        # ドロップゾーンの設定（tkinterdnd2が利用可能な場合）
+        if TKDND_AVAILABLE:
+            self._setup_drop_zone()
+
         # APIキーのチェック
         self._initialize_api()
 
@@ -61,6 +84,15 @@ class MainWindow(ctk.CTk):
         """テーマを適用"""
         ctk.set_appearance_mode(mode)
         ctk.set_default_color_theme(color)
+
+    def _get_bg_color(self):
+        """現在のテーマに応じた背景色を取得"""
+        # CustomTkinterのテーマに応じて背景色を返す
+        appearance_mode = ctk.get_appearance_mode()
+        if appearance_mode == "Dark":
+            return "#2b2b2b"
+        else:
+            return "#dbdbdb"
 
     def _create_button_group(self, parent, title, buttons):
         """ボタングループを作成"""
@@ -179,26 +211,52 @@ class MainWindow(ctk.CTk):
         ]
         self._create_button_group(toolbar_scroll, "設定", setting_buttons)
 
-        # ========== メインコンテナ ==========
+        # ========== メインコンテナ（PanedWindowで3分割）==========
+        # 外側のコンテナ
         main_container = ctk.CTkFrame(self)
         main_container.pack(fill="both", expand=True, padx=10, pady=5)
 
+        # PanedWindow（左-中央）
+        self.paned_main = tk.PanedWindow(
+            main_container,
+            orient=tk.HORIZONTAL,
+            sashwidth=5,
+            sashrelief=tk.RAISED,
+            bg=self._get_bg_color()
+        )
+        self.paned_main.pack(fill="both", expand=True)
+
         # 左パネル（キャラクター・世界観）
-        left_panel = ctk.CTkFrame(main_container, width=300)
-        left_panel.pack(side="left", fill="both", padx=(0, 5))
-        left_panel.pack_propagate(False)
+        left_panel = ctk.CTkFrame(self.paned_main)
+        self.paned_main.add(left_panel, minsize=250, width=300)
 
         self._create_left_panel(left_panel)
 
-        # 右パネル（シーン作成・編集）- スクロール対応
-        right_panel_container = ctk.CTkFrame(main_container, fg_color="transparent")
-        right_panel_container.pack(side="right", fill="both", expand=True)
+        # PanedWindow（中央-右）
+        self.paned_center_right = tk.PanedWindow(
+            self.paned_main,
+            orient=tk.HORIZONTAL,
+            sashwidth=5,
+            sashrelief=tk.RAISED,
+            bg=self._get_bg_color()
+        )
+        self.paned_main.add(self.paned_center_right, minsize=400)
 
-        right_panel = ctk.CTkScrollableFrame(
-            right_panel_container,
+        # 中央パネル（シーン作成・編集）- スクロール対応
+        center_panel_container = ctk.CTkFrame(self.paned_center_right, fg_color="transparent")
+        self.paned_center_right.add(center_panel_container, minsize=400)
+
+        center_panel = ctk.CTkScrollableFrame(
+            center_panel_container,
             fg_color="transparent"
         )
-        right_panel.pack(fill="both", expand=True)
+        center_panel.pack(fill="both", expand=True)
+
+        self._create_center_panel(center_panel)
+
+        # 右パネル（生成結果・シーン一覧）
+        right_panel = ctk.CTkFrame(self.paned_center_right)
+        self.paned_center_right.add(right_panel, minsize=350, width=450)
 
         self._create_right_panel(right_panel)
 
@@ -326,13 +384,9 @@ class MainWindow(ctk.CTk):
         self.world_text = ctk.CTkTextbox(parent, wrap="word")
         self.world_text.pack(fill="both", expand=True)
 
-    def _create_right_panel(self, parent):
-        """右パネルの作成"""
-        # 上下分割
-        # 上部: シーン作成・編集エリア
-        # 下部: シーン一覧と生成結果
-
-        # 上部フレーム（シーン作成エリア）
+    def _create_center_panel(self, parent):
+        """中央パネルの作成（シーン作成・編集エリア）"""
+        # シーン作成エリア
         scene_frame = ctk.CTkFrame(parent)
         scene_frame.pack(fill="x", padx=10, pady=10)
 
@@ -422,17 +476,19 @@ class MainWindow(ctk.CTk):
             hover_color="#b71c1c"
         ).pack(side="left", padx=5)
 
-        # 下部フレーム（タブビュー：シーン一覧と生成結果）
-        bottom_tabview = ctk.CTkTabview(parent)
-        bottom_tabview.pack(fill="both", expand=True, padx=10, pady=(0, 10))
+    def _create_right_panel(self, parent):
+        """右パネルの作成（生成結果・シーン一覧）"""
+        # タブビュー：シーン一覧と生成結果
+        tabview = ctk.CTkTabview(parent)
+        tabview.pack(fill="both", expand=True, padx=5, pady=5)
 
         # 生成結果タブ
-        result_tab = bottom_tabview.add("生成結果")
+        result_tab = tabview.add("生成結果")
         self.result_text = ctk.CTkTextbox(result_tab, wrap="word")
         self.result_text.pack(fill="both", expand=True, padx=5, pady=5)
 
         # シーン一覧タブ
-        scenes_tab = bottom_tabview.add("シーン一覧")
+        scenes_tab = tabview.add("シーン一覧")
 
         # シーン一覧操作ボタン
         scene_button_frame = ctk.CTkFrame(scenes_tab, fg_color="transparent")
@@ -782,7 +838,7 @@ class MainWindow(ctk.CTk):
                 self.character_checkboxes.append((char, var))
 
     def _refresh_scene_list(self):
-        """シーン一覧を更新（カード型）"""
+        """シーン一覧を更新（カード型、ドラッグ&ドロップ対応）"""
         # 既存のウィジェットを削除
         for widget in self.scene_listbox.winfo_children():
             widget.destroy()
@@ -797,14 +853,19 @@ class MainWindow(ctk.CTk):
             )
             label.pack(pady=20)
         else:
-            for scene in scenes:
-                # カードフレーム
+            for index, scene in enumerate(scenes):
+                # カードフレーム（ドラッグ可能）
                 card = ctk.CTkFrame(
                     self.scene_listbox,
                     fg_color=("gray90", "gray25"),
                     corner_radius=8
                 )
                 card.pack(fill="x", pady=4, padx=5)
+
+                # ドラッグ&ドロップのイベントをバインド
+                card.bind("<Button-1>", lambda e, idx=index, c=card: self._on_scene_drag_start(e, idx, c))
+                card.bind("<B1-Motion>", lambda e, idx=index: self._on_scene_drag_motion(e, idx))
+                card.bind("<ButtonRelease-1>", lambda e, idx=index: self._on_scene_drop(e, idx))
 
                 # シーンタイトル
                 title = scene.get('title', '無題')
@@ -816,9 +877,15 @@ class MainWindow(ctk.CTk):
                     fg_color="transparent",
                     hover_color=("gray85", "gray30"),
                     text_color=("gray10", "gray90"),
-                    font=ctk.CTkFont(size=13, weight="bold")
+                    font=ctk.CTkFont(size=13, weight="bold"),
+                    cursor="hand2"
                 )
                 btn.pack(fill="x", padx=8, pady=(8, 2))
+
+                # ボタンにもドラッグイベントをバインド（カード全体がドラッグ可能に）
+                btn.bind("<Button-1>", lambda e, idx=index, c=card: self._on_scene_drag_start(e, idx, c))
+                btn.bind("<B1-Motion>", lambda e, idx=index: self._on_scene_drag_motion(e, idx))
+                btn.bind("<ButtonRelease-1>", lambda e, idx=index: self._on_scene_drop(e, idx))
 
                 # 文字数表示
                 content_length = len(scene.get('content', ''))
@@ -830,6 +897,11 @@ class MainWindow(ctk.CTk):
                     anchor="w"
                 )
                 info_label.pack(fill="x", padx=8, pady=(0, 8))
+
+                # 情報ラベルにもドラッグイベントをバインド
+                info_label.bind("<Button-1>", lambda e, idx=index, c=card: self._on_scene_drag_start(e, idx, c))
+                info_label.bind("<B1-Motion>", lambda e, idx=index: self._on_scene_drag_motion(e, idx))
+                info_label.bind("<ButtonRelease-1>", lambda e, idx=index: self._on_scene_drop(e, idx))
 
     def _select_scene(self, scene):
         """シーンを選択"""
@@ -1179,3 +1251,252 @@ class MainWindow(ctk.CTk):
                 selected_characters.append(char)
 
         return selected_characters
+
+    # ========== ドラッグ&ドロップ機能 ==========
+
+    def _on_scene_drag_start(self, event, index: int, card):
+        """シーンのドラッグ準備（Button-1）"""
+        # ドラッグ準備状態を記録（実際のドラッグはマウス移動で開始）
+        self.drag_data['drag_ready'] = True
+        self.drag_data['source_index'] = index
+        self.drag_data['source_card'] = card
+        self.drag_data['start_x'] = event.x
+        self.drag_data['start_y'] = event.y
+
+    def _on_scene_drag_motion(self, event, index: int):
+        """シーンのドラッグ中（B1-Motion）"""
+        # ドラッグ準備状態でなければ何もしない
+        if not self.drag_data['drag_ready']:
+            return
+
+        # 最初の移動でドラッグを開始（5ピクセル以上移動したら）
+        if not self.drag_data['dragging']:
+            dx = abs(event.x - self.drag_data['start_x'])
+            dy = abs(event.y - self.drag_data['start_y'])
+
+            if dx > 5 or dy > 5:
+                # ドラッグ開始
+                self.drag_data['dragging'] = True
+
+                # 視覚的フィードバック（カードをハイライト）
+                card = self.drag_data['source_card']
+                if card:
+                    card.configure(fg_color=("#7FA8E6", "#4A6FA5"))
+                    card.configure(cursor="fleur")
+
+    def _on_scene_drop(self, event, target_index: int):
+        """シーンのドロップ（ButtonRelease-1）"""
+        # ドラッグ中でなければ何もしない（通常のクリック）
+        if not self.drag_data['dragging']:
+            self._reset_drag_state()
+            return
+
+        source_index = self.drag_data['source_index']
+
+        # ドラッグ元のカードの色を元に戻す
+        if self.drag_data['source_card']:
+            self.drag_data['source_card'].configure(fg_color=("gray90", "gray25"))
+            self.drag_data['source_card'].configure(cursor="arrow")
+
+        # 同じ位置にドロップした場合は何もしない
+        if source_index == target_index:
+            self._reset_drag_state()
+            return
+
+        # シーンの順序を変更
+        try:
+            scenes = self.project_manager.get_scenes()
+            if not scenes or source_index >= len(scenes) or target_index >= len(scenes):
+                self._reset_drag_state()
+                return
+
+            # シーンIDのリストを作成
+            scene_ids = [scene['id'] for scene in scenes]
+
+            # source_indexの要素をtarget_indexに移動
+            scene_id = scene_ids.pop(source_index)
+            scene_ids.insert(target_index, scene_id)
+
+            # project_managerで順序を更新
+            self.project_manager.reorder_scenes(scene_ids)
+
+            # UIを更新
+            self._refresh_scene_list()
+
+            # ステータスメッセージを更新
+            self.status_message_label.configure(text="シーンの順序を変更しました")
+
+        except Exception as e:
+            messagebox.showerror("エラー", f"並び替えに失敗しました: {str(e)}")
+
+        # ドラッグ状態をリセット
+        self._reset_drag_state()
+
+    def _reset_drag_state(self):
+        """ドラッグ状態をリセット"""
+        self.drag_data = {
+            'dragging': False,
+            'drag_ready': False,
+            'source_index': None,
+            'source_card': None,
+            'drag_indicator': None,
+            'start_x': 0,
+            'start_y': 0
+        }
+
+    # ========== ファイルドロップ機能 ==========
+
+    def _setup_drop_zone(self):
+        """ドロップゾーンの設定（tkinterdnd2）"""
+        if not TKDND_AVAILABLE:
+            return
+
+        try:
+            # メインウィンドウ全体をドロップゾーンに設定
+            self.drop_target_register(DND_FILES)
+            self.dnd_bind('<<Drop>>', self._on_file_drop)
+            self.dnd_bind('<<DragEnter>>', self._on_drag_enter)
+            self.dnd_bind('<<DragLeave>>', self._on_drag_leave)
+        except Exception as e:
+            print(f"ドロップゾーンの設定に失敗: {e}")
+
+    def _on_drag_enter(self, event):
+        """ファイルがウィンドウに入った時の処理"""
+        # 視覚的フィードバック（ウィンドウの枠をハイライト）
+        self.status_message_label.configure(
+            text="ファイルをドロップしてインポート (.txt: シーン, .json: プロジェクト)",
+            text_color=("#1565c0", "#3a7ebf")
+        )
+
+    def _on_drag_leave(self, event):
+        """ファイルがウィンドウから出た時の処理"""
+        # ハイライトを解除
+        self.status_message_label.configure(
+            text="準備完了",
+            text_color=("gray40", "gray60")
+        )
+
+    def _on_file_drop(self, event):
+        """ファイルがドロップされた時の処理"""
+        # ハイライトを解除
+        self.status_message_label.configure(
+            text="準備完了",
+            text_color=("gray40", "gray60")
+        )
+
+        # ドロップされたファイルのパスを取得
+        # tkinterdnd2は複数ファイルを{file1} {file2}形式で返す
+        files = self._parse_drop_files(event.data)
+
+        if not files:
+            return
+
+        # 最初のファイルのみ処理
+        file_path = files[0]
+
+        # ファイル拡張子を取得
+        _, ext = os.path.splitext(file_path)
+        ext = ext.lower()
+
+        try:
+            if ext == '.txt':
+                self._import_text_file(file_path)
+            elif ext == '.json':
+                self._import_project_file(file_path)
+            else:
+                messagebox.showwarning(
+                    "警告",
+                    f"サポートされていないファイル形式です: {ext}\n\n対応形式:\n- .txt (シーンとしてインポート)\n- .json (プロジェクトとして開く)"
+                )
+        except Exception as e:
+            messagebox.showerror("エラー", f"ファイルのインポートに失敗しました: {str(e)}")
+
+    def _parse_drop_files(self, data: str) -> List[str]:
+        """ドロップされたファイルのパスをパース"""
+        # tkinterdnd2は{file1} {file2}形式でファイルを返す
+        # 中括弧で囲まれたファイルパスと通常のファイルパスの両方に対応
+        files = []
+        current_file = ""
+        in_braces = False
+
+        for char in data:
+            if char == '{':
+                in_braces = True
+            elif char == '}':
+                in_braces = False
+                if current_file:
+                    files.append(current_file)
+                    current_file = ""
+            elif char == ' ' and not in_braces:
+                if current_file:
+                    files.append(current_file)
+                    current_file = ""
+            else:
+                current_file += char
+
+        if current_file:
+            files.append(current_file)
+
+        return files
+
+    def _import_text_file(self, file_path: str):
+        """テキストファイルをシーンとしてインポート"""
+        if not self.project_manager.current_project:
+            messagebox.showwarning("警告", "プロジェクトを開いてください")
+            return
+
+        # ファイルを読み込み
+        with open(file_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+        if not content.strip():
+            messagebox.showwarning("警告", "ファイルが空です")
+            return
+
+        # シーンタイトルを入力
+        file_name = os.path.basename(file_path)
+        default_title = os.path.splitext(file_name)[0]
+
+        title = simpledialog.askstring(
+            "シーンタイトル",
+            "インポートするシーンのタイトルを入力してください:",
+            initialvalue=default_title,
+            parent=self
+        )
+
+        if not title:
+            return  # キャンセルされた
+
+        # シーンを作成
+        scene_data = {
+            'title': title,
+            'overview': f"{file_name}からインポート",
+            'content': content
+        }
+
+        try:
+            self.project_manager.add_scene(scene_data)
+            self._refresh_scene_list()
+            messagebox.showinfo("成功", f"シーン「{title}」をインポートしました")
+        except Exception as e:
+            messagebox.showerror("エラー", f"シーンのインポートに失敗しました: {str(e)}")
+
+    def _import_project_file(self, file_path: str):
+        """プロジェクトファイルを開く"""
+        # 現在のプロジェクトが変更されている場合は確認
+        if self.project_manager.current_project:
+            result = messagebox.askyesno(
+                "確認",
+                "現在のプロジェクトを閉じて、新しいプロジェクトを開きますか？\n\n未保存の変更は失われます。"
+            )
+            if not result:
+                return
+
+        # プロジェクトを開く
+        try:
+            self.project_manager.load_project(file_path)
+            self.config.set_last_project(file_path)
+            self._update_ui_from_project()
+            messagebox.showinfo("成功", "プロジェクトを開きました")
+        except Exception as e:
+            messagebox.showerror("エラー", f"プロジェクトを開けませんでした: {str(e)}")

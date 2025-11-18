@@ -13,8 +13,9 @@ class StatsDialog(ctk.CTkToplevel):
         super().__init__(parent)
 
         self.title("統計情報")
-        self.geometry("600x500")
-        self.resizable(False, False)
+        self.geometry("700x600")
+        self.minsize(600, 500)  # 最小サイズを設定
+        self.resizable(True, True)  # リサイズ可能に
 
         # モーダルにする
         self.transient(parent)
@@ -23,6 +24,12 @@ class StatsDialog(ctk.CTkToplevel):
         self.project_data = project_data
         self._create_widgets()
         self._calculate_stats()
+
+        # ウィンドウを中央に配置
+        self.update_idletasks()
+        x = (self.winfo_screenwidth() // 2) - (700 // 2)
+        y = (self.winfo_screenheight() // 2) - (600 // 2)
+        self.geometry(f"+{x}+{y}")
 
     def _create_widgets(self):
         """ウィジェットの作成"""
