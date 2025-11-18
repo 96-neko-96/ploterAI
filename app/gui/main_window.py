@@ -4,6 +4,7 @@
 """
 import customtkinter as ctk
 from tkinter import messagebox, filedialog, simpledialog
+import tkinter as tk
 import threading
 from typing import Optional, List, Dict, Any
 import os
@@ -83,6 +84,15 @@ class MainWindow(ctk.CTk):
         """テーマを適用"""
         ctk.set_appearance_mode(mode)
         ctk.set_default_color_theme(color)
+
+    def _get_bg_color(self):
+        """現在のテーマに応じた背景色を取得"""
+        # CustomTkinterのテーマに応じて背景色を返す
+        appearance_mode = ctk.get_appearance_mode()
+        if appearance_mode == "Dark":
+            return "#2b2b2b"
+        else:
+            return "#dbdbdb"
 
     def _create_button_group(self, parent, title, buttons):
         """ボタングループを作成"""
@@ -201,20 +211,40 @@ class MainWindow(ctk.CTk):
         ]
         self._create_button_group(toolbar_scroll, "設定", setting_buttons)
 
-        # ========== メインコンテナ ==========
+        # ========== メインコンテナ（PanedWindowで3分割）==========
+        # 外側のコンテナ
         main_container = ctk.CTkFrame(self)
         main_container.pack(fill="both", expand=True, padx=10, pady=5)
 
+        # PanedWindow（左-中央）
+        self.paned_main = tk.PanedWindow(
+            main_container,
+            orient=tk.HORIZONTAL,
+            sashwidth=5,
+            sashrelief=tk.RAISED,
+            bg=self._get_bg_color()
+        )
+        self.paned_main.pack(fill="both", expand=True)
+
         # 左パネル（キャラクター・世界観）
-        left_panel = ctk.CTkFrame(main_container, width=300)
-        left_panel.pack(side="left", fill="both", padx=(0, 5))
-        left_panel.pack_propagate(False)
+        left_panel = ctk.CTkFrame(self.paned_main)
+        self.paned_main.add(left_panel, minsize=250, width=300)
 
         self._create_left_panel(left_panel)
 
+        # PanedWindow（中央-右）
+        self.paned_center_right = tk.PanedWindow(
+            self.paned_main,
+            orient=tk.HORIZONTAL,
+            sashwidth=5,
+            sashrelief=tk.RAISED,
+            bg=self._get_bg_color()
+        )
+        self.paned_main.add(self.paned_center_right, minsize=400)
+
         # 中央パネル（シーン作成・編集）- スクロール対応
-        center_panel_container = ctk.CTkFrame(main_container, fg_color="transparent")
-        center_panel_container.pack(side="left", fill="both", expand=True, padx=(0, 5))
+        center_panel_container = ctk.CTkFrame(self.paned_center_right, fg_color="transparent")
+        self.paned_center_right.add(center_panel_container, minsize=400)
 
         center_panel = ctk.CTkScrollableFrame(
             center_panel_container,
@@ -225,9 +255,8 @@ class MainWindow(ctk.CTk):
         self._create_center_panel(center_panel)
 
         # 右パネル（生成結果・シーン一覧）
-        right_panel = ctk.CTkFrame(main_container, width=450)
-        right_panel.pack(side="right", fill="both")
-        right_panel.pack_propagate(False)
+        right_panel = ctk.CTkFrame(self.paned_center_right)
+        self.paned_center_right.add(right_panel, minsize=350, width=450)
 
         self._create_right_panel(right_panel)
 
