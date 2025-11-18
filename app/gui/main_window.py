@@ -3,9 +3,16 @@
 アプリケーションのメインGUI
 """
 import customtkinter as ctk
-from tkinter import messagebox, filedialog
+from tkinter import messagebox, filedialog, simpledialog
 import threading
 from typing import Optional, List, Dict, Any
+import os
+
+try:
+    from tkinterdnd2 import DND_FILES, TkinterDnD
+    TKDND_AVAILABLE = True
+except ImportError:
+    TKDND_AVAILABLE = False
 
 from app.utils.config import Config
 from app.core.project_manager import ProjectManager
@@ -61,6 +68,10 @@ class MainWindow(ctk.CTk):
         # GUIの作成
         self._create_menu()
         self._create_widgets()
+
+        # ドロップゾーンの設定（tkinterdnd2が利用可能な場合）
+        if TKDND_AVAILABLE:
+            self._setup_drop_zone()
 
         # APIキーのチェック
         self._initialize_api()
@@ -1298,3 +1309,160 @@ class MainWindow(ctk.CTk):
             'start_x': 0,
             'start_y': 0
         }
+
+    # ========== ファイルドロップ機能 ==========
+
+    def _setup_drop_zone(self):
+        """ドロップゾーンの設定（tkinterdnd2）"""
+        if not TKDND_AVAILABLE:
+            return
+
+        try:
+            # メインウィンドウ全体をドロップゾーンに設定
+            self.drop_target_register(DND_FILES)
+            self.dnd_bind('<<Drop>>', self._on_file_drop)
+            self.dnd_bind('<<DragEnter>>', self._on_drag_enter)
+            self.dnd_bind('<<DragLeave>>', self._on_drag_leave)
+        except Exception as e:
+            print(f"ドロップゾーンの設定に失敗: {e}")
+
+    def _on_drag_enter(self, event):
+        """ファイルがウィンドウに入った時の処理"""
+        # 視覚的フィードバック（ウィンドウの枠をハイライト）
+        self.status_message_label.configure(
+            text="ファイルをドロップしてインポート (.txt: シーン, .json: プロジェクト)",
+            text_color=("#1565c0", "#3a7ebf")
+        )
+
+    def _on_drag_leave(self, event):
+        """ファイルがウィンドウから出た時の処理"""
+        # ハイライトを解除
+        self.status_message_label.configure(
+            text="準備完了",
+            text_color=("gray40", "gray60")
+        )
+
+    def _on_file_drop(self, event):
+        """ファイルがドロップされた時の処理"""
+        # ハイライトを解除
+        self.status_message_label.configure(
+            text="準備完了",
+            text_color=("gray40", "gray60")
+        )
+
+        # ドロップされたファイルのパスを取得
+        # tkinterdnd2は複数ファイルを{file1} {file2}形式で返す
+        files = self._parse_drop_files(event.data)
+
+        if not files:
+            return
+
+        # 最初のファイルのみ処理
+        file_path = files[0]
+
+        # ファイル拡張子を取得
+        _, ext = os.path.splitext(file_path)
+        ext = ext.lower()
+
+        try:
+            if ext == '.txt':
+                self._import_text_file(file_path)
+            elif ext == '.json':
+                self._import_project_file(file_path)
+            else:
+                messagebox.showwarning(
+                    "警告",
+                    f"サポートされていないファイル形式です: {ext}\n\n対応形式:\n- .txt (シーンとしてインポート)\n- .json (プロジェクトとして開く)"
+                )
+        except Exception as e:
+            messagebox.showerror("エラー", f"ファイルのインポートに失敗しました: {str(e)}")
+
+    def _parse_drop_files(self, data: str) -> List[str]:
+        """ドロップされたファイルのパスをパース"""
+        # tkinterdnd2は{file1} {file2}形式でファイルを返す
+        # 中括弧で囲まれたファイルパスと通常のファイルパスの両方に対応
+        files = []
+        current_file = ""
+        in_braces = False
+
+        for char in data:
+            if char == '{':
+                in_braces = True
+            elif char == '}':
+                in_braces = False
+                if current_file:
+                    files.append(current_file)
+                    current_file = ""
+            elif char == ' ' and not in_braces:
+                if current_file:
+                    files.append(current_file)
+                    current_file = ""
+            else:
+                current_file += char
+
+        if current_file:
+            files.append(current_file)
+
+        return files
+
+    def _import_text_file(self, file_path: str):
+        """テキストファイルをシーンとしてインポート"""
+        if not self.project_manager.current_project:
+            messagebox.showwarning("警告", "プロジェクトを開いてください")
+            return
+
+        # ファイルを読み込み
+        with open(file_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+
+        if not content.strip():
+            messagebox.showwarning("警告", "ファイルが空です")
+            return
+
+        # シーンタイトルを入力
+        file_name = os.path.basename(file_path)
+        default_title = os.path.splitext(file_name)[0]
+
+        title = simpledialog.askstring(
+            "シーンタイトル",
+            "インポートするシーンのタイトルを入力してください:",
+            initialvalue=default_title,
+            parent=self
+        )
+
+        if not title:
+            return  # キャンセルされた
+
+        # シーンを作成
+        scene_data = {
+            'title': title,
+            'overview': f"{file_name}からインポート",
+            'content': content
+        }
+
+        try:
+            self.project_manager.add_scene(scene_data)
+            self._refresh_scene_list()
+            messagebox.showinfo("成功", f"シーン「{title}」をインポートしました")
+        except Exception as e:
+            messagebox.showerror("エラー", f"シーンのインポートに失敗しました: {str(e)}")
+
+    def _import_project_file(self, file_path: str):
+        """プロジェクトファイルを開く"""
+        # 現在のプロジェクトが変更されている場合は確認
+        if self.project_manager.current_project:
+            result = messagebox.askyesno(
+                "確認",
+                "現在のプロジェクトを閉じて、新しいプロジェクトを開きますか？\n\n未保存の変更は失われます。"
+            )
+            if not result:
+                return
+
+        # プロジェクトを開く
+        try:
+            self.project_manager.load_project(file_path)
+            self.config.set_last_project(file_path)
+            self._update_ui_from_project()
+            messagebox.showinfo("成功", "プロジェクトを開きました")
+        except Exception as e:
+            messagebox.showerror("エラー", f"プロジェクトを開けませんでした: {str(e)}")
