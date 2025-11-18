@@ -38,6 +38,17 @@ class MainWindow(ctk.CTk):
         # 現在の状態
         self.current_scene_content = ""
 
+        # ドラッグ&ドロップの状態
+        self.drag_data = {
+            'dragging': False,
+            'drag_ready': False,
+            'source_index': None,
+            'source_card': None,
+            'drag_indicator': None,
+            'start_x': 0,
+            'start_y': 0
+        }
+
         # ウィンドウ設定
         self.title("Story Generator")
         self.geometry("1400x900")
@@ -782,7 +793,7 @@ class MainWindow(ctk.CTk):
                 self.character_checkboxes.append((char, var))
 
     def _refresh_scene_list(self):
-        """シーン一覧を更新（カード型）"""
+        """シーン一覧を更新（カード型、ドラッグ&ドロップ対応）"""
         # 既存のウィジェットを削除
         for widget in self.scene_listbox.winfo_children():
             widget.destroy()
@@ -797,14 +808,19 @@ class MainWindow(ctk.CTk):
             )
             label.pack(pady=20)
         else:
-            for scene in scenes:
-                # カードフレーム
+            for index, scene in enumerate(scenes):
+                # カードフレーム（ドラッグ可能）
                 card = ctk.CTkFrame(
                     self.scene_listbox,
                     fg_color=("gray90", "gray25"),
                     corner_radius=8
                 )
                 card.pack(fill="x", pady=4, padx=5)
+
+                # ドラッグ&ドロップのイベントをバインド
+                card.bind("<Button-1>", lambda e, idx=index, c=card: self._on_scene_drag_start(e, idx, c))
+                card.bind("<B1-Motion>", lambda e, idx=index: self._on_scene_drag_motion(e, idx))
+                card.bind("<ButtonRelease-1>", lambda e, idx=index: self._on_scene_drop(e, idx))
 
                 # シーンタイトル
                 title = scene.get('title', '無題')
@@ -816,9 +832,15 @@ class MainWindow(ctk.CTk):
                     fg_color="transparent",
                     hover_color=("gray85", "gray30"),
                     text_color=("gray10", "gray90"),
-                    font=ctk.CTkFont(size=13, weight="bold")
+                    font=ctk.CTkFont(size=13, weight="bold"),
+                    cursor="hand2"
                 )
                 btn.pack(fill="x", padx=8, pady=(8, 2))
+
+                # ボタンにもドラッグイベントをバインド（カード全体がドラッグ可能に）
+                btn.bind("<Button-1>", lambda e, idx=index, c=card: self._on_scene_drag_start(e, idx, c))
+                btn.bind("<B1-Motion>", lambda e, idx=index: self._on_scene_drag_motion(e, idx))
+                btn.bind("<ButtonRelease-1>", lambda e, idx=index: self._on_scene_drop(e, idx))
 
                 # 文字数表示
                 content_length = len(scene.get('content', ''))
@@ -830,6 +852,11 @@ class MainWindow(ctk.CTk):
                     anchor="w"
                 )
                 info_label.pack(fill="x", padx=8, pady=(0, 8))
+
+                # 情報ラベルにもドラッグイベントをバインド
+                info_label.bind("<Button-1>", lambda e, idx=index, c=card: self._on_scene_drag_start(e, idx, c))
+                info_label.bind("<B1-Motion>", lambda e, idx=index: self._on_scene_drag_motion(e, idx))
+                info_label.bind("<ButtonRelease-1>", lambda e, idx=index: self._on_scene_drop(e, idx))
 
     def _select_scene(self, scene):
         """シーンを選択"""
@@ -1179,3 +1206,95 @@ class MainWindow(ctk.CTk):
                 selected_characters.append(char)
 
         return selected_characters
+
+    # ========== ドラッグ&ドロップ機能 ==========
+
+    def _on_scene_drag_start(self, event, index: int, card):
+        """シーンのドラッグ準備（Button-1）"""
+        # ドラッグ準備状態を記録（実際のドラッグはマウス移動で開始）
+        self.drag_data['drag_ready'] = True
+        self.drag_data['source_index'] = index
+        self.drag_data['source_card'] = card
+        self.drag_data['start_x'] = event.x
+        self.drag_data['start_y'] = event.y
+
+    def _on_scene_drag_motion(self, event, index: int):
+        """シーンのドラッグ中（B1-Motion）"""
+        # ドラッグ準備状態でなければ何もしない
+        if not self.drag_data['drag_ready']:
+            return
+
+        # 最初の移動でドラッグを開始（5ピクセル以上移動したら）
+        if not self.drag_data['dragging']:
+            dx = abs(event.x - self.drag_data['start_x'])
+            dy = abs(event.y - self.drag_data['start_y'])
+
+            if dx > 5 or dy > 5:
+                # ドラッグ開始
+                self.drag_data['dragging'] = True
+
+                # 視覚的フィードバック（カードをハイライト）
+                card = self.drag_data['source_card']
+                if card:
+                    card.configure(fg_color=("#7FA8E6", "#4A6FA5"))
+                    card.configure(cursor="fleur")
+
+    def _on_scene_drop(self, event, target_index: int):
+        """シーンのドロップ（ButtonRelease-1）"""
+        # ドラッグ中でなければ何もしない（通常のクリック）
+        if not self.drag_data['dragging']:
+            self._reset_drag_state()
+            return
+
+        source_index = self.drag_data['source_index']
+
+        # ドラッグ元のカードの色を元に戻す
+        if self.drag_data['source_card']:
+            self.drag_data['source_card'].configure(fg_color=("gray90", "gray25"))
+            self.drag_data['source_card'].configure(cursor="arrow")
+
+        # 同じ位置にドロップした場合は何もしない
+        if source_index == target_index:
+            self._reset_drag_state()
+            return
+
+        # シーンの順序を変更
+        try:
+            scenes = self.project_manager.get_scenes()
+            if not scenes or source_index >= len(scenes) or target_index >= len(scenes):
+                self._reset_drag_state()
+                return
+
+            # シーンIDのリストを作成
+            scene_ids = [scene['id'] for scene in scenes]
+
+            # source_indexの要素をtarget_indexに移動
+            scene_id = scene_ids.pop(source_index)
+            scene_ids.insert(target_index, scene_id)
+
+            # project_managerで順序を更新
+            self.project_manager.reorder_scenes(scene_ids)
+
+            # UIを更新
+            self._refresh_scene_list()
+
+            # ステータスメッセージを更新
+            self.status_message_label.configure(text="シーンの順序を変更しました")
+
+        except Exception as e:
+            messagebox.showerror("エラー", f"並び替えに失敗しました: {str(e)}")
+
+        # ドラッグ状態をリセット
+        self._reset_drag_state()
+
+    def _reset_drag_state(self):
+        """ドラッグ状態をリセット"""
+        self.drag_data = {
+            'dragging': False,
+            'drag_ready': False,
+            'source_index': None,
+            'source_card': None,
+            'drag_indicator': None,
+            'start_x': 0,
+            'start_y': 0
+        }
