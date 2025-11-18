@@ -48,148 +48,101 @@ class CharacterDialog(ctk.CTkToplevel):
         main_frame = ctk.CTkFrame(self)
         main_frame.pack(fill="both", expand=True, padx=20, pady=20)
 
+        # ヘッダーフレーム
+        header_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
+        header_frame.pack(fill="x", pady=(0, 15))
+
         # タイトル
         mode = "編集" if self.character_data else "作成"
         title_label = ctk.CTkLabel(
-            main_frame,
-            text=f"キャラクター{mode}",
-            font=ctk.CTkFont(size=20, weight="bold")
+            header_frame,
+            text=f"👤 キャラクター{mode}",
+            font=ctk.CTkFont(size=22, weight="bold"),
+            text_color=("#1f538d", "#3a7ebf")
         )
-        title_label.pack(pady=(0, 10))
+        title_label.pack(side="left")
 
         # AI生成ボタン
         if not self.character_data and self.ai_generate_callback:
             ai_button = ctk.CTkButton(
-                main_frame,
-                text="AIで生成",
+                header_frame,
+                text="✨ AIで生成",
                 command=self._show_ai_generation,
-                width=120
+                width=130,
+                height=36,
+                corner_radius=6,
+                fg_color="#1565c0",
+                hover_color="#0d47a1",
+                font=ctk.CTkFont(size=13, weight="bold")
             )
-            ai_button.pack(pady=(0, 10))
+            ai_button.pack(side="right")
 
         # スクロール可能フレーム
         scroll_frame = ctk.CTkScrollableFrame(main_frame, width=700, height=480)
-        scroll_frame.pack(fill="both", expand=True, pady=(0, 10))
+        scroll_frame.pack(fill="both", expand=True, pady=(0, 15))
 
-        # 名前
-        name_label = ctk.CTkLabel(
-            scroll_frame,
-            text="名前 (必須):",
-            font=ctk.CTkFont(size=14, weight="bold")
-        )
-        name_label.pack(anchor="w", pady=(0, 5))
+        # フィールドウィジェット保存用
+        self.field_widgets = {}
 
-        self.name_entry = ctk.CTkEntry(
-            scroll_frame,
-            width=700,
-            placeholder_text="キャラクターの名前"
-        )
-        self.name_entry.pack(pady=(0, 15))
+        # フォームフィールド
+        fields = [
+            ("名前", "name", "キャラクターの名前を入力...", True, 1),
+            ("性格", "personality", "性格の特徴を入力...", False, 3),
+            ("外見", "appearance", "外見の特徴を入力...", False, 3),
+            ("背景・経歴", "background", "生い立ちや経歴を入力...", False, 3),
+            ("特技・能力", "skills", "特殊な能力やスキルを入力...", False, 3),
+            ("口調・話し方", "speech", "話し方の特徴を入力...", False, 2),
+            ("人間関係", "relationships", "他のキャラクターとの関係を入力...", False, 3),
+            ("目標・動機", "goals", "行動の目的や動機を入力...", False, 3),
+        ]
 
-        # 性格
-        personality_label = ctk.CTkLabel(
-            scroll_frame,
-            text="性格:",
-            font=ctk.CTkFont(size=14, weight="bold")
-        )
-        personality_label.pack(anchor="w", pady=(0, 5))
+        for label_text, field_name, placeholder, is_entry, height in fields:
+            # フィールドコンテナ
+            field_container = ctk.CTkFrame(scroll_frame, fg_color="transparent")
+            field_container.pack(fill="x", pady=(0, 15), padx=10)
 
-        self.personality_text = ctk.CTkTextbox(
-            scroll_frame,
-            width=700,
-            height=80
-        )
-        self.personality_text.pack(pady=(0, 15))
+            # ラベル
+            label_frame = ctk.CTkFrame(field_container, fg_color="transparent")
+            label_frame.pack(fill="x", pady=(0, 5))
 
-        # 外見
-        appearance_label = ctk.CTkLabel(
-            scroll_frame,
-            text="外見:",
-            font=ctk.CTkFont(size=14, weight="bold")
-        )
-        appearance_label.pack(anchor="w", pady=(0, 5))
+            label = ctk.CTkLabel(
+                label_frame,
+                text=label_text,
+                font=ctk.CTkFont(size=13, weight="bold"),
+                anchor="w"
+            )
+            label.pack(side="left")
 
-        self.appearance_text = ctk.CTkTextbox(
-            scroll_frame,
-            width=700,
-            height=80
-        )
-        self.appearance_text.pack(pady=(0, 15))
+            if is_entry:
+                # 必須マーク
+                required_label = ctk.CTkLabel(
+                    label_frame,
+                    text=" *",
+                    font=ctk.CTkFont(size=14, weight="bold"),
+                    text_color="red"
+                )
+                required_label.pack(side="left", padx=(3, 0))
 
-        # 背景・経歴
-        background_label = ctk.CTkLabel(
-            scroll_frame,
-            text="背景・経歴:",
-            font=ctk.CTkFont(size=14, weight="bold")
-        )
-        background_label.pack(anchor="w", pady=(0, 5))
+            # 入力フィールド
+            if is_entry:
+                widget = ctk.CTkEntry(
+                    field_container,
+                    placeholder_text=placeholder,
+                    height=38,
+                    corner_radius=6,
+                    font=ctk.CTkFont(size=13)
+                )
+            else:
+                widget = ctk.CTkTextbox(
+                    field_container,
+                    height=height * 30,
+                    corner_radius=6,
+                    font=ctk.CTkFont(size=12),
+                    wrap="word"
+                )
 
-        self.background_text = ctk.CTkTextbox(
-            scroll_frame,
-            width=700,
-            height=80
-        )
-        self.background_text.pack(pady=(0, 15))
-
-        # 特技・能力
-        skills_label = ctk.CTkLabel(
-            scroll_frame,
-            text="特技・能力:",
-            font=ctk.CTkFont(size=14, weight="bold")
-        )
-        skills_label.pack(anchor="w", pady=(0, 5))
-
-        self.skills_text = ctk.CTkTextbox(
-            scroll_frame,
-            width=700,
-            height=80
-        )
-        self.skills_text.pack(pady=(0, 15))
-
-        # 口調・話し方
-        speech_label = ctk.CTkLabel(
-            scroll_frame,
-            text="口調・話し方:",
-            font=ctk.CTkFont(size=14, weight="bold")
-        )
-        speech_label.pack(anchor="w", pady=(0, 5))
-
-        self.speech_text = ctk.CTkTextbox(
-            scroll_frame,
-            width=700,
-            height=60
-        )
-        self.speech_text.pack(pady=(0, 15))
-
-        # 人間関係
-        relationships_label = ctk.CTkLabel(
-            scroll_frame,
-            text="人間関係:",
-            font=ctk.CTkFont(size=14, weight="bold")
-        )
-        relationships_label.pack(anchor="w", pady=(0, 5))
-
-        self.relationships_text = ctk.CTkTextbox(
-            scroll_frame,
-            width=700,
-            height=80
-        )
-        self.relationships_text.pack(pady=(0, 15))
-
-        # 目標・動機
-        goals_label = ctk.CTkLabel(
-            scroll_frame,
-            text="目標・動機:",
-            font=ctk.CTkFont(size=14, weight="bold")
-        )
-        goals_label.pack(anchor="w", pady=(0, 5))
-
-        self.goals_text = ctk.CTkTextbox(
-            scroll_frame,
-            width=700,
-            height=80
-        )
-        self.goals_text.pack(pady=(0, 15))
+            widget.pack(fill="x")
+            self.field_widgets[field_name] = widget
 
         # ボタン
         button_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
@@ -200,28 +153,35 @@ class CharacterDialog(ctk.CTkToplevel):
             text="キャンセル",
             command=self._cancel,
             fg_color="gray",
-            width=120
+            hover_color="darkgray",
+            width=140,
+            height=38,
+            corner_radius=6,
+            font=ctk.CTkFont(size=13)
         )
         cancel_button.pack(side="left")
 
         save_button = ctk.CTkButton(
             button_frame,
-            text="保存",
+            text="💾 保存",
             command=self._save,
-            width=120
+            width=140,
+            height=38,
+            corner_radius=6,
+            fg_color="#2e7d32",
+            hover_color="#1b5e20",
+            font=ctk.CTkFont(size=13, weight="bold")
         )
         save_button.pack(side="right")
 
     def _load_character_data(self):
         """キャラクターデータを読み込み"""
-        self.name_entry.insert(0, self.character_data.get('name', ''))
-        self.personality_text.insert("1.0", self.character_data.get('personality', ''))
-        self.appearance_text.insert("1.0", self.character_data.get('appearance', ''))
-        self.background_text.insert("1.0", self.character_data.get('background', ''))
-        self.skills_text.insert("1.0", self.character_data.get('skills', ''))
-        self.speech_text.insert("1.0", self.character_data.get('speech', ''))
-        self.relationships_text.insert("1.0", self.character_data.get('relationships', ''))
-        self.goals_text.insert("1.0", self.character_data.get('goals', ''))
+        for field_name, widget in self.field_widgets.items():
+            value = self.character_data.get(field_name, '')
+            if isinstance(widget, ctk.CTkEntry):
+                widget.insert(0, value)
+            else:  # CTkTextbox
+                widget.insert("1.0", value)
 
     def _show_ai_generation(self):
         """AI生成ダイアログを表示"""
@@ -230,48 +190,32 @@ class CharacterDialog(ctk.CTkToplevel):
 
         if ai_dialog.result:
             # 生成されたデータをフォームに入力
-            self.name_entry.delete(0, "end")
-            self.name_entry.insert(0, ai_dialog.result.get('name', ''))
-
-            self.personality_text.delete("1.0", "end")
-            self.personality_text.insert("1.0", ai_dialog.result.get('personality', ''))
-
-            self.appearance_text.delete("1.0", "end")
-            self.appearance_text.insert("1.0", ai_dialog.result.get('appearance', ''))
-
-            self.background_text.delete("1.0", "end")
-            self.background_text.insert("1.0", ai_dialog.result.get('background', ''))
-
-            self.skills_text.delete("1.0", "end")
-            self.skills_text.insert("1.0", ai_dialog.result.get('skills', ''))
-
-            self.speech_text.delete("1.0", "end")
-            self.speech_text.insert("1.0", ai_dialog.result.get('speech', ''))
-
-            self.relationships_text.delete("1.0", "end")
-            self.relationships_text.insert("1.0", ai_dialog.result.get('relationships', ''))
-
-            self.goals_text.delete("1.0", "end")
-            self.goals_text.insert("1.0", ai_dialog.result.get('goals', ''))
+            for field_name, widget in self.field_widgets.items():
+                value = ai_dialog.result.get(field_name, '')
+                if isinstance(widget, ctk.CTkEntry):
+                    widget.delete(0, "end")
+                    widget.insert(0, value)
+                else:  # CTkTextbox
+                    widget.delete("1.0", "end")
+                    widget.insert("1.0", value)
 
     def _save(self):
         """保存"""
-        name = self.name_entry.get().strip()
+        # 名前の必須チェック
+        name_widget = self.field_widgets['name']
+        name = name_widget.get().strip()
 
         if not name:
             messagebox.showerror("エラー", "名前は必須です")
             return
 
-        self.result = {
-            'name': name,
-            'personality': self.personality_text.get("1.0", "end-1c").strip(),
-            'appearance': self.appearance_text.get("1.0", "end-1c").strip(),
-            'background': self.background_text.get("1.0", "end-1c").strip(),
-            'skills': self.skills_text.get("1.0", "end-1c").strip(),
-            'speech': self.speech_text.get("1.0", "end-1c").strip(),
-            'relationships': self.relationships_text.get("1.0", "end-1c").strip(),
-            'goals': self.goals_text.get("1.0", "end-1c").strip()
-        }
+        # 全フィールドのデータを収集
+        self.result = {}
+        for field_name, widget in self.field_widgets.items():
+            if isinstance(widget, ctk.CTkEntry):
+                self.result[field_name] = widget.get().strip()
+            else:  # CTkTextbox
+                self.result[field_name] = widget.get("1.0", "end-1c").strip()
 
         self.destroy()
 
@@ -315,40 +259,57 @@ class AICharacterDialog(ctk.CTkToplevel):
         # タイトル
         title_label = ctk.CTkLabel(
             main_frame,
-            text="AIでキャラクター生成",
-            font=ctk.CTkFont(size=20, weight="bold")
+            text="✨ AIでキャラクター生成",
+            font=ctk.CTkFont(size=22, weight="bold"),
+            text_color=("#1f538d", "#3a7ebf")
         )
-        title_label.pack(pady=(0, 20))
+        title_label.pack(pady=(0, 10))
+
+        # 説明文
+        desc_label = ctk.CTkLabel(
+            main_frame,
+            text="AIがキャラクターの詳細な設定を自動生成します",
+            font=ctk.CTkFont(size=12),
+            text_color=("gray40", "gray60")
+        )
+        desc_label.pack(pady=(0, 20))
 
         # コンセプト
         concept_label = ctk.CTkLabel(
             main_frame,
-            text="キャラクターのコンセプト:",
-            font=ctk.CTkFont(size=14)
+            text="キャラクターのコンセプト *",
+            font=ctk.CTkFont(size=13, weight="bold"),
+            anchor="w"
         )
         concept_label.pack(anchor="w", pady=(0, 5))
 
         self.concept_entry = ctk.CTkEntry(
             main_frame,
             width=520,
-            placeholder_text="例: 勇敢な騎士、天才魔法使い、気弱な学生"
+            height=38,
+            placeholder_text="例: 勇敢な騎士、天才魔法使い、気弱な学生",
+            font=ctk.CTkFont(size=13),
+            corner_radius=6
         )
-        self.concept_entry.pack(pady=(0, 15))
+        self.concept_entry.pack(fill="x", pady=(0, 15))
 
         # 追加情報
         additional_label = ctk.CTkLabel(
             main_frame,
-            text="追加情報（任意）:",
-            font=ctk.CTkFont(size=14)
+            text="追加情報（任意）",
+            font=ctk.CTkFont(size=13, weight="bold"),
+            anchor="w"
         )
         additional_label.pack(anchor="w", pady=(0, 5))
 
         self.additional_text = ctk.CTkTextbox(
             main_frame,
-            width=520,
-            height=80
+            height=90,
+            font=ctk.CTkFont(size=12),
+            corner_radius=6,
+            wrap="word"
         )
-        self.additional_text.pack(pady=(0, 20))
+        self.additional_text.pack(fill="x", pady=(0, 20))
 
         # ボタン
         button_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
@@ -359,15 +320,24 @@ class AICharacterDialog(ctk.CTkToplevel):
             text="キャンセル",
             command=self._cancel,
             fg_color="gray",
-            width=120
+            hover_color="darkgray",
+            width=140,
+            height=38,
+            corner_radius=6,
+            font=ctk.CTkFont(size=13)
         )
         cancel_button.pack(side="left")
 
         generate_button = ctk.CTkButton(
             button_frame,
-            text="生成",
+            text="✨ 生成開始",
             command=self._generate,
-            width=120
+            width=140,
+            height=38,
+            corner_radius=6,
+            fg_color="#1565c0",
+            hover_color="#0d47a1",
+            font=ctk.CTkFont(size=13, weight="bold")
         )
         generate_button.pack(side="right")
 
@@ -412,30 +382,44 @@ class ProgressDialog(ctk.CTkToplevel):
         super().__init__(parent)
 
         self.title("処理中")
-        self.geometry("300x100")
+        self.geometry("350x120")
         self.resizable(False, False)
 
         # モーダルにする
         self.transient(parent)
 
-        # メッセージ
+        # メインフレーム
+        main_frame = ctk.CTkFrame(self, fg_color="transparent")
+        main_frame.pack(fill="both", expand=True, padx=20, pady=20)
+
+        # アイコン付きメッセージ
+        message_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
+        message_frame.pack(pady=(0, 15))
+
+        icon_label = ctk.CTkLabel(
+            message_frame,
+            text="⏳",
+            font=ctk.CTkFont(size=24)
+        )
+        icon_label.pack(side="left", padx=(0, 10))
+
         label = ctk.CTkLabel(
-            self,
+            message_frame,
             text=message,
             font=ctk.CTkFont(size=14)
         )
-        label.pack(pady=20)
+        label.pack(side="left")
 
         # プログレスバー
-        self.progressbar = ctk.CTkProgressBar(self, width=250)
-        self.progressbar.pack(pady=10)
+        self.progressbar = ctk.CTkProgressBar(main_frame, width=280, height=8)
+        self.progressbar.pack()
         self.progressbar.set(0)
         self.progressbar.start()
 
         # ウィンドウを中央に配置
         self.update_idletasks()
-        x = (self.winfo_screenwidth() // 2) - (300 // 2)
-        y = (self.winfo_screenheight() // 2) - (100 // 2)
+        x = (self.winfo_screenwidth() // 2) - (350 // 2)
+        y = (self.winfo_screenheight() // 2) - (120 // 2)
         self.geometry(f"+{x}+{y}")
 
         # 表示しない（show()で表示）

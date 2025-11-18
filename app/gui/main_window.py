@@ -40,7 +40,8 @@ class MainWindow(ctk.CTk):
 
         # ウィンドウ設定
         self.title("Story Generator")
-        self.geometry("1400x800")
+        self.geometry("1400x900")
+        self.minsize(1200, 850)
 
         # テーマの適用
         theme = self.config.get_ui_theme()
@@ -61,6 +62,53 @@ class MainWindow(ctk.CTk):
         ctk.set_appearance_mode(mode)
         ctk.set_default_color_theme(color)
 
+    def _create_button_group(self, parent, title, buttons):
+        """ボタングループを作成"""
+        group_frame = ctk.CTkFrame(parent, fg_color="transparent")
+        group_frame.pack(side="left", padx=5)
+
+        # グループタイトル
+        title_label = ctk.CTkLabel(
+            group_frame,
+            text=title,
+            font=ctk.CTkFont(size=10, weight="bold"),
+            text_color=("gray50", "gray50")
+        )
+        title_label.pack(pady=(0, 3))
+
+        # ボタンコンテナ
+        button_container = ctk.CTkFrame(group_frame, fg_color="transparent")
+        button_container.pack()
+
+        for text, command, color in buttons:
+            btn = ctk.CTkButton(
+                button_container,
+                text=text,
+                command=command,
+                width=140,
+                height=32,
+                corner_radius=6,
+                fg_color=color,
+                hover_color=self._darken_color(color),
+                font=ctk.CTkFont(size=12)
+            )
+            btn.pack(side="left", padx=2)
+
+    def _darken_color(self, color):
+        """色を暗くする（簡易版）"""
+        color_map = {
+            "#2e7d32": "#1b5e20",
+            "#1565c0": "#0d47a1",
+            "#6a1b9a": "#4a148c",
+            "#c62828": "#b71c1c",
+            "#f57c00": "#e65100",
+            "#00838f": "#006064",
+            "#5e35b1": "#4527a0",
+            "#37474f": "#263238",
+            "#455a64": "#37474f",
+        }
+        return color_map.get(color, color)
+
     def _create_menu(self):
         """メニューバーの作成"""
         # CustomTkinterはネイティブメニューバーをサポートしていないため、
@@ -69,43 +117,69 @@ class MainWindow(ctk.CTk):
 
     def _create_widgets(self):
         """ウィジェットの作成"""
-        # トップフレーム（メニュー相当）
-        top_frame = ctk.CTkFrame(self, height=50)
-        top_frame.pack(fill="x", padx=10, pady=5)
+        # ========== ヘッダーバー ==========
+        header_frame = ctk.CTkFrame(self, height=60, corner_radius=0)
+        header_frame.pack(fill="x", padx=0, pady=0)
+        header_frame.pack_propagate(False)
 
-        # メニューボタン
-        menu_buttons = [
-            ("新規プロジェクト", self._new_project),
-            ("プロジェクトを開く", self._open_project),
-            ("保存", self._save_project),
-            ("名前を付けて保存", self._save_as_project),
-            ("エクスポート", self._export),
-            ("検索", self._show_search),
-            ("統計情報", self._show_stats),
-            ("テンプレート", self._show_templates),
-            ("API設定", self._show_api_config),
-            ("テーマ設定", self._show_theme_config),
-        ]
-
-        for text, command in menu_buttons:
-            btn = ctk.CTkButton(
-                top_frame,
-                text=text,
-                command=command,
-                width=120,
-                height=35
-            )
-            btn.pack(side="left", padx=5)
+        # アプリタイトル
+        title_label = ctk.CTkLabel(
+            header_frame,
+            text="📖 Story Generator",
+            font=ctk.CTkFont(size=24, weight="bold"),
+            text_color=("#1f538d", "#3a7ebf")
+        )
+        title_label.pack(side="left", padx=20, pady=10)
 
         # プロジェクト名表示
         self.project_label = ctk.CTkLabel(
-            top_frame,
+            header_frame,
             text="プロジェクト: 未保存",
-            font=ctk.CTkFont(size=14)
+            font=ctk.CTkFont(size=14),
+            text_color=("gray30", "gray70")
         )
-        self.project_label.pack(side="right", padx=10)
+        self.project_label.pack(side="right", padx=20)
 
-        # メインコンテナ
+        # ========== ツールバー ==========
+        toolbar_frame = ctk.CTkFrame(self, height=100, corner_radius=0)
+        toolbar_frame.pack(fill="x", padx=0, pady=0)
+        toolbar_frame.pack_propagate(False)
+
+        # ツールバースクロールエリア
+        toolbar_scroll = ctk.CTkScrollableFrame(
+            toolbar_frame,
+            orientation="horizontal",
+            height=85,
+            fg_color="transparent"
+        )
+        toolbar_scroll.pack(fill="both", expand=True, padx=10, pady=5)
+
+        # ボタングループ1: プロジェクト
+        project_buttons = [
+            ("📝 新規", self._new_project, "#2e7d32"),
+            ("📂 開く", self._open_project, "#1565c0"),
+            ("💾 保存", self._save_project, "#6a1b9a"),
+            ("💾 名前保存", self._save_as_project, "#6a1b9a"),
+        ]
+        self._create_button_group(toolbar_scroll, "プロジェクト", project_buttons)
+
+        # ボタングループ2: ツール
+        tool_buttons = [
+            ("📤 エクスポート", self._export, "#00838f"),
+            ("🔍 検索", self._show_search, "#f57c00"),
+            ("📊 統計", self._show_stats, "#f57c00"),
+            ("📋 テンプレート", self._show_templates, "#f57c00"),
+        ]
+        self._create_button_group(toolbar_scroll, "ツール", tool_buttons)
+
+        # ボタングループ3: 設定
+        setting_buttons = [
+            ("⚙️ API設定", self._show_api_config, "#455a64"),
+            ("🎨 テーマ", self._show_theme_config, "#5e35b1"),
+        ]
+        self._create_button_group(toolbar_scroll, "設定", setting_buttons)
+
+        # ========== メインコンテナ ==========
         main_container = ctk.CTkFrame(self)
         main_container.pack(fill="both", expand=True, padx=10, pady=5)
 
@@ -116,11 +190,40 @@ class MainWindow(ctk.CTk):
 
         self._create_left_panel(left_panel)
 
-        # 右パネル（シーン作成・編集）
-        right_panel = ctk.CTkFrame(main_container)
-        right_panel.pack(side="right", fill="both", expand=True)
+        # 右パネル（シーン作成・編集）- スクロール対応
+        right_panel_container = ctk.CTkFrame(main_container, fg_color="transparent")
+        right_panel_container.pack(side="right", fill="both", expand=True)
+
+        right_panel = ctk.CTkScrollableFrame(
+            right_panel_container,
+            fg_color="transparent"
+        )
+        right_panel.pack(fill="both", expand=True)
 
         self._create_right_panel(right_panel)
+
+        # ========== ステータスバー ==========
+        status_frame = ctk.CTkFrame(self, height=30, corner_radius=0)
+        status_frame.pack(fill="x", side="bottom", padx=0, pady=0)
+        status_frame.pack_propagate(False)
+
+        # API接続状態
+        self.api_status_label = ctk.CTkLabel(
+            status_frame,
+            text="● API: 未接続",
+            font=ctk.CTkFont(size=11),
+            text_color=("gray40", "gray60")
+        )
+        self.api_status_label.pack(side="left", padx=10)
+
+        # ステータスメッセージ
+        self.status_message_label = ctk.CTkLabel(
+            status_frame,
+            text="準備完了",
+            font=ctk.CTkFont(size=11),
+            text_color=("gray40", "gray60")
+        )
+        self.status_message_label.pack(side="right", padx=10)
 
     def _create_left_panel(self, parent):
         """左パネルの作成"""
@@ -344,6 +447,7 @@ class MainWindow(ctk.CTk):
         """APIの初期化"""
         api_key = self.config.get_api_key()
         if not api_key:
+            self.api_status_label.configure(text="● API: 未接続", text_color="red")
             messagebox.showwarning(
                 "API設定",
                 "Gemini APIキーが設定されていません。\n「API設定」メニューから設定してください。"
@@ -361,7 +465,9 @@ class MainWindow(ctk.CTk):
                 max_tokens=api_config.get('max_tokens', 4000),
                 top_p=api_config.get('top_p', 0.9)
             )
+            self.api_status_label.configure(text="● API: 接続済み", text_color="green")
         except Exception as e:
+            self.api_status_label.configure(text="● API: エラー", text_color="red")
             messagebox.showerror("エラー", f"API初期化に失敗しました: {str(e)}")
 
     def _load_last_project(self):
@@ -569,21 +675,44 @@ class MainWindow(ctk.CTk):
         self._refresh_scene_list()
 
     def _refresh_character_list(self):
-        """キャラクターリストを更新"""
+        """キャラクターリストを更新（カード型）"""
         # 既存のウィジェットを削除
         for widget in self.character_listbox.winfo_children():
             widget.destroy()
 
         # キャラクターを表示
         characters = self.project_manager.get_characters()
-        for char in characters:
-            btn = ctk.CTkButton(
+        if not characters:
+            label = ctk.CTkLabel(
                 self.character_listbox,
-                text=char.get('name', '不明'),
-                command=lambda c=char: self._select_character(c),
-                anchor="w"
+                text="キャラクターがありません",
+                text_color="gray"
             )
-            btn.pack(fill="x", pady=2)
+            label.pack(pady=20)
+            return
+
+        for char in characters:
+            # カードフレーム
+            card = ctk.CTkFrame(
+                self.character_listbox,
+                fg_color=("gray90", "gray25"),
+                corner_radius=8
+            )
+            card.pack(fill="x", pady=4, padx=5)
+
+            # 選択ボタン
+            name = char.get('name', '不明')
+            btn = ctk.CTkButton(
+                card,
+                text=f"👤 {name}",
+                command=lambda c=char: self._select_character(c),
+                anchor="w",
+                fg_color="transparent",
+                hover_color=("gray85", "gray30"),
+                text_color=("gray10", "gray90"),
+                font=ctk.CTkFont(size=13, weight="bold")
+            )
+            btn.pack(fill="x", padx=8, pady=8)
 
     def _refresh_world_display(self):
         """世界観表示を更新"""
@@ -625,7 +754,7 @@ class MainWindow(ctk.CTk):
                 self.character_checkboxes.append((char, var))
 
     def _refresh_scene_list(self):
-        """シーン一覧を更新"""
+        """シーン一覧を更新（カード型）"""
         # 既存のウィジェットを削除
         for widget in self.scene_listbox.winfo_children():
             widget.destroy()
@@ -638,16 +767,41 @@ class MainWindow(ctk.CTk):
                 text="シーンがありません",
                 text_color="gray"
             )
-            label.pack(pady=10)
+            label.pack(pady=20)
         else:
             for scene in scenes:
-                btn = ctk.CTkButton(
+                # カードフレーム
+                card = ctk.CTkFrame(
                     self.scene_listbox,
-                    text=scene.get('title', '無題'),
+                    fg_color=("gray90", "gray25"),
+                    corner_radius=8
+                )
+                card.pack(fill="x", pady=4, padx=5)
+
+                # シーンタイトル
+                title = scene.get('title', '無題')
+                btn = ctk.CTkButton(
+                    card,
+                    text=f"📄 {title}",
                     command=lambda s=scene: self._select_scene(s),
+                    anchor="w",
+                    fg_color="transparent",
+                    hover_color=("gray85", "gray30"),
+                    text_color=("gray10", "gray90"),
+                    font=ctk.CTkFont(size=13, weight="bold")
+                )
+                btn.pack(fill="x", padx=8, pady=(8, 2))
+
+                # 文字数表示
+                content_length = len(scene.get('content', ''))
+                info_label = ctk.CTkLabel(
+                    card,
+                    text=f"文字数: {content_length:,}",
+                    font=ctk.CTkFont(size=10),
+                    text_color=("gray50", "gray50"),
                     anchor="w"
                 )
-                btn.pack(fill="x", pady=2)
+                info_label.pack(fill="x", padx=8, pady=(0, 8))
 
     def _select_scene(self, scene):
         """シーンを選択"""
