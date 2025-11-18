@@ -89,12 +89,20 @@ class Config:
 
     def set_api_key(self, api_key: str):
         """APIキーの設定"""
+        # 'api'キーが存在しない場合、デフォルト値で初期化
+        if 'api' not in self.settings:
+            self.settings['api'] = self._default_config()['api']
+
         encrypted = self.encrypt_api_key(api_key)
         self.settings['api']['encrypted_key'] = encrypted
         self.save_config()
 
     def get_api_key(self) -> Optional[str]:
         """APIキーの取得"""
+        # 'api'キーが存在しない場合、Noneを返す
+        if 'api' not in self.settings:
+            return None
+
         encrypted_key = self.settings['api'].get('encrypted_key')
         if encrypted_key:
             return self.decrypt_api_key(encrypted_key)
@@ -102,6 +110,10 @@ class Config:
 
     def set_api_config(self, model: str, temperature: float, max_tokens: int, top_p: float):
         """API設定の更新"""
+        # 'api'キーが存在しない場合、デフォルト値で初期化
+        if 'api' not in self.settings:
+            self.settings['api'] = self._default_config()['api']
+
         self.settings['api']['model'] = model
         self.settings['api']['temperature'] = temperature
         self.settings['api']['max_tokens'] = max_tokens
@@ -110,16 +122,28 @@ class Config:
 
     def get_api_config(self) -> Dict[str, Any]:
         """API設定の取得"""
+        # 'api'キーが存在しない場合、デフォルト値を返す
+        if 'api' not in self.settings:
+            self.settings['api'] = self._default_config()['api']
+            self.save_config()
         return self.settings['api']
 
     def set_ui_theme(self, mode: str, color: str):
         """UIテーマの設定"""
+        # 'ui'キーが存在しない場合、デフォルト値で初期化
+        if 'ui' not in self.settings:
+            self.settings['ui'] = self._default_config()['ui']
+
         self.settings['ui']['theme_mode'] = mode
         self.settings['ui']['color_theme'] = color
         self.save_config()
 
     def get_ui_theme(self) -> Dict[str, str]:
         """UIテーマの取得"""
+        # 'ui'キーが存在しない場合、デフォルト値を返す
+        if 'ui' not in self.settings:
+            self.settings['ui'] = self._default_config()['ui']
+            self.save_config()
         return self.settings['ui']
 
     def set_last_project(self, project_path: Optional[str]):
