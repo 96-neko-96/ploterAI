@@ -27,8 +27,9 @@ class ExportDialog(ctk.CTkToplevel):
         self.result = None
 
         self.title("エクスポート")
-        self.geometry("600x550")
-        self.resizable(False, False)
+        self.geometry("700x650")
+        self.minsize(600, 550)  # 最小サイズを設定
+        self.resizable(True, True)  # リサイズ可能に
 
         # モーダルにする
         self.transient(parent)
@@ -38,8 +39,8 @@ class ExportDialog(ctk.CTkToplevel):
 
         # ウィンドウを中央に配置
         self.update_idletasks()
-        x = (self.winfo_screenwidth() // 2) - (600 // 2)
-        y = (self.winfo_screenheight() // 2) - (550 // 2)
+        x = (self.winfo_screenwidth() // 2) - (700 // 2)
+        y = (self.winfo_screenheight() // 2) - (650 // 2)
         self.geometry(f"+{x}+{y}")
 
     def _create_widgets(self):

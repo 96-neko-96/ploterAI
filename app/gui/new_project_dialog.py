@@ -16,8 +16,9 @@ class NewProjectDialog(ctk.CTkToplevel):
         self.result = None
 
         self.title("新規プロジェクト")
-        self.geometry("500x250")
-        self.resizable(False, False)
+        self.geometry("550x300")
+        self.minsize(500, 250)  # 最小サイズを設定
+        self.resizable(True, True)  # リサイズ可能に
 
         # モーダルにする
         self.transient(parent)
@@ -27,8 +28,8 @@ class NewProjectDialog(ctk.CTkToplevel):
 
         # ウィンドウを中央に配置
         self.update_idletasks()
-        x = (self.winfo_screenwidth() // 2) - (500 // 2)
-        y = (self.winfo_screenheight() // 2) - (250 // 2)
+        x = (self.winfo_screenwidth() // 2) - (550 // 2)
+        y = (self.winfo_screenheight() // 2) - (300 // 2)
         self.geometry(f"+{x}+{y}")
 
     def _create_widgets(self):

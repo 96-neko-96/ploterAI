@@ -14,8 +14,9 @@ class SearchDialog(ctk.CTkToplevel):
         super().__init__(parent)
 
         self.title("検索")
-        self.geometry("700x600")
-        self.resizable(False, False)
+        self.geometry("800x700")
+        self.minsize(600, 500)  # 最小サイズを設定
+        self.resizable(True, True)  # リサイズ可能に
 
         # モーダルにする
         self.transient(parent)
@@ -26,6 +27,12 @@ class SearchDialog(ctk.CTkToplevel):
         self.on_scene_select = on_scene_select
 
         self._create_widgets()
+
+        # ウィンドウを中央に配置
+        self.update_idletasks()
+        x = (self.winfo_screenwidth() // 2) - (800 // 2)
+        y = (self.winfo_screenheight() // 2) - (700 // 2)
+        self.geometry(f"+{x}+{y}")
 
     def _create_widgets(self):
         """ウィジェットの作成"""

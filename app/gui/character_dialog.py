@@ -25,7 +25,9 @@ class CharacterDialog(ctk.CTkToplevel):
 
         mode = "編集" if character_data else "作成"
         self.title(f"キャラクター{mode}")
-        self.geometry("800x700")
+        self.geometry("850x750")
+        self.minsize(700, 600)  # 最小サイズを設定
+        self.resizable(True, True)  # リサイズ可能に
 
         # モーダルにする
         self.transient(parent)
@@ -38,8 +40,8 @@ class CharacterDialog(ctk.CTkToplevel):
 
         # ウィンドウを中央に配置
         self.update_idletasks()
-        x = (self.winfo_screenwidth() // 2) - (800 // 2)
-        y = (self.winfo_screenheight() // 2) - (700 // 2)
+        x = (self.winfo_screenwidth() // 2) - (850 // 2)
+        y = (self.winfo_screenheight() // 2) - (750 // 2)
         self.geometry(f"+{x}+{y}")
 
     def _create_widgets(self):
