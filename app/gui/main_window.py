@@ -212,15 +212,22 @@ class MainWindow(ctk.CTk):
 
         self._create_left_panel(left_panel)
 
-        # 右パネル（シーン作成・編集）- スクロール対応
-        right_panel_container = ctk.CTkFrame(main_container, fg_color="transparent")
-        right_panel_container.pack(side="right", fill="both", expand=True)
+        # 中央パネル（シーン作成・編集）- スクロール対応
+        center_panel_container = ctk.CTkFrame(main_container, fg_color="transparent")
+        center_panel_container.pack(side="left", fill="both", expand=True, padx=(0, 5))
 
-        right_panel = ctk.CTkScrollableFrame(
-            right_panel_container,
+        center_panel = ctk.CTkScrollableFrame(
+            center_panel_container,
             fg_color="transparent"
         )
-        right_panel.pack(fill="both", expand=True)
+        center_panel.pack(fill="both", expand=True)
+
+        self._create_center_panel(center_panel)
+
+        # 右パネル（生成結果・シーン一覧）
+        right_panel = ctk.CTkFrame(main_container, width=450)
+        right_panel.pack(side="right", fill="both")
+        right_panel.pack_propagate(False)
 
         self._create_right_panel(right_panel)
 
@@ -348,13 +355,9 @@ class MainWindow(ctk.CTk):
         self.world_text = ctk.CTkTextbox(parent, wrap="word")
         self.world_text.pack(fill="both", expand=True)
 
-    def _create_right_panel(self, parent):
-        """右パネルの作成"""
-        # 上下分割
-        # 上部: シーン作成・編集エリア
-        # 下部: シーン一覧と生成結果
-
-        # 上部フレーム（シーン作成エリア）
+    def _create_center_panel(self, parent):
+        """中央パネルの作成（シーン作成・編集エリア）"""
+        # シーン作成エリア
         scene_frame = ctk.CTkFrame(parent)
         scene_frame.pack(fill="x", padx=10, pady=10)
 
@@ -444,17 +447,19 @@ class MainWindow(ctk.CTk):
             hover_color="#b71c1c"
         ).pack(side="left", padx=5)
 
-        # 下部フレーム（タブビュー：シーン一覧と生成結果）
-        bottom_tabview = ctk.CTkTabview(parent)
-        bottom_tabview.pack(fill="both", expand=True, padx=10, pady=(0, 10))
+    def _create_right_panel(self, parent):
+        """右パネルの作成（生成結果・シーン一覧）"""
+        # タブビュー：シーン一覧と生成結果
+        tabview = ctk.CTkTabview(parent)
+        tabview.pack(fill="both", expand=True, padx=5, pady=5)
 
         # 生成結果タブ
-        result_tab = bottom_tabview.add("生成結果")
+        result_tab = tabview.add("生成結果")
         self.result_text = ctk.CTkTextbox(result_tab, wrap="word")
         self.result_text.pack(fill="both", expand=True, padx=5, pady=5)
 
         # シーン一覧タブ
-        scenes_tab = bottom_tabview.add("シーン一覧")
+        scenes_tab = tabview.add("シーン一覧")
 
         # シーン一覧操作ボタン
         scene_button_frame = ctk.CTkFrame(scenes_tab, fg_color="transparent")
