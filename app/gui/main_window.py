@@ -165,17 +165,17 @@ class MainWindow(ctk.CTk):
 
         # ボタングループ2: ツール
         tool_buttons = [
-            ("📤 エクスポート", self._export, "#00838f"),
+            ("📤 エクスポート", self._export, "#c62828"),
             ("🔍 検索", self._show_search, "#f57c00"),
-            ("📊 統計", self._show_stats, "#f57c00"),
-            ("📋 テンプレート", self._show_templates, "#f57c00"),
+            ("📊 統計", self._show_stats, "#00838f"),
+            ("📋 テンプレート", self._show_templates, "#5e35b1"),
         ]
         self._create_button_group(toolbar_scroll, "ツール", tool_buttons)
 
         # ボタングループ3: 設定
         setting_buttons = [
             ("⚙️ API設定", self._show_api_config, "#455a64"),
-            ("🎨 テーマ", self._show_theme_config, "#5e35b1"),
+            ("🎨 テーマ", self._show_theme_config, "#37474f"),
         ]
         self._create_button_group(toolbar_scroll, "設定", setting_buttons)
 
@@ -249,7 +249,9 @@ class MainWindow(ctk.CTk):
             button_frame,
             text="新規作成",
             command=self._add_character,
-            width=80
+            width=80,
+            fg_color="#2e7d32",
+            hover_color="#1b5e20"
         )
         add_btn.pack(side="left", padx=(0, 5))
 
@@ -257,7 +259,9 @@ class MainWindow(ctk.CTk):
             button_frame,
             text="AI生成",
             command=self._generate_character,
-            width=80
+            width=80,
+            fg_color="#1565c0",
+            hover_color="#0d47a1"
         )
         ai_btn.pack(side="left")
 
@@ -273,7 +277,9 @@ class MainWindow(ctk.CTk):
             action_frame,
             text="編集",
             command=self._edit_character,
-            width=80
+            width=80,
+            fg_color="#6a1b9a",
+            hover_color="#4a148c"
         )
         edit_btn.pack(side="left", padx=(0, 5))
 
@@ -281,7 +287,8 @@ class MainWindow(ctk.CTk):
             action_frame,
             text="削除",
             command=self._delete_character,
-            fg_color="red",
+            fg_color="#c62828",
+            hover_color="#b71c1c",
             width=80
         )
         delete_btn.pack(side="left")
@@ -299,7 +306,9 @@ class MainWindow(ctk.CTk):
             button_frame,
             text="手動作成",
             command=self._create_world_manual,
-            width=100
+            width=100,
+            fg_color="#2e7d32",
+            hover_color="#1b5e20"
         )
         manual_btn.pack(side="left", padx=(0, 5))
 
@@ -307,7 +316,9 @@ class MainWindow(ctk.CTk):
             button_frame,
             text="AI生成",
             command=self._generate_world,
-            width=100
+            width=100,
+            fg_color="#1565c0",
+            hover_color="#0d47a1"
         )
         ai_btn.pack(side="left")
 
@@ -333,21 +344,27 @@ class MainWindow(ctk.CTk):
             button_frame,
             text="新規シーン",
             command=self._new_scene,
-            width=100
+            width=100,
+            fg_color="#2e7d32",
+            hover_color="#1b5e20"
         ).pack(side="left", padx=5)
 
         ctk.CTkButton(
             button_frame,
             text="シーン保存",
             command=self._save_scene,
-            width=100
+            width=100,
+            fg_color="#6a1b9a",
+            hover_color="#4a148c"
         ).pack(side="left", padx=5)
 
         ctk.CTkButton(
             button_frame,
             text="文体設定",
             command=self._show_style_dialog,
-            width=100
+            width=100,
+            fg_color="#f57c00",
+            hover_color="#e65100"
         ).pack(side="left", padx=5)
 
         # シーンタイトル
@@ -382,21 +399,27 @@ class MainWindow(ctk.CTk):
             generate_frame,
             text="プロット生成",
             command=self._generate_plot,
-            width=130
+            width=130,
+            fg_color="#1565c0",
+            hover_color="#0d47a1"
         ).pack(side="left", padx=5)
 
         ctk.CTkButton(
             generate_frame,
             text="中編化",
             command=self._expand_to_medium,
-            width=130
+            width=130,
+            fg_color="#6a1b9a",
+            hover_color="#4a148c"
         ).pack(side="left", padx=5)
 
         ctk.CTkButton(
             generate_frame,
             text="長編化",
             command=self._expand_to_long,
-            width=130
+            width=130,
+            fg_color="#c62828",
+            hover_color="#b71c1c"
         ).pack(side="left", padx=5)
 
         # 下部フレーム（タブビュー：シーン一覧と生成結果）
@@ -419,14 +442,17 @@ class MainWindow(ctk.CTk):
             scene_button_frame,
             text="読み込み",
             command=self._load_selected_scene,
-            width=100
+            width=100,
+            fg_color="#1565c0",
+            hover_color="#0d47a1"
         ).pack(side="left", padx=5)
 
         ctk.CTkButton(
             scene_button_frame,
             text="削除",
             command=self._delete_selected_scene,
-            fg_color="red",
+            fg_color="#c62828",
+            hover_color="#b71c1c",
             width=100
         ).pack(side="left", padx=5)
 
@@ -434,7 +460,9 @@ class MainWindow(ctk.CTk):
             scene_button_frame,
             text="更新",
             command=self._refresh_scene_list,
-            width=100
+            width=100,
+            fg_color="#00838f",
+            hover_color="#006064"
         ).pack(side="left", padx=5)
 
         # シーン一覧
