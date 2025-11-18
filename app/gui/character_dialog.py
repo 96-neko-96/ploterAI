@@ -385,8 +385,9 @@ class ProgressDialog(ctk.CTkToplevel):
         super().__init__(parent)
 
         self.title("処理中")
-        self.geometry("350x120")
-        self.resizable(False, False)
+        self.geometry("400x150")
+        self.minsize(350, 120)  # 最小サイズを設定
+        self.resizable(True, True)  # リサイズ可能に
 
         # モーダルにする
         self.transient(parent)
@@ -421,8 +422,8 @@ class ProgressDialog(ctk.CTkToplevel):
 
         # ウィンドウを中央に配置
         self.update_idletasks()
-        x = (self.winfo_screenwidth() // 2) - (350 // 2)
-        y = (self.winfo_screenheight() // 2) - (120 // 2)
+        x = (self.winfo_screenwidth() // 2) - (400 // 2)
+        y = (self.winfo_screenheight() // 2) - (150 // 2)
         self.geometry(f"+{x}+{y}")
 
         # 表示しない（show()で表示）
