@@ -18,6 +18,9 @@ from app.gui.new_project_dialog import NewProjectDialog
 from app.gui.character_dialog import CharacterDialog, ProgressDialog
 from app.gui.world_dialog import WorldDialog
 from app.gui.export_dialog import ExportDialog
+from app.gui.stats_dialog import StatsDialog
+from app.gui.template_dialog import TemplateDialog
+from app.gui.search_dialog import SearchDialog
 
 
 class MainWindow(ctk.CTk):
@@ -77,6 +80,9 @@ class MainWindow(ctk.CTk):
             ("保存", self._save_project),
             ("名前を付けて保存", self._save_as_project),
             ("エクスポート", self._export),
+            ("検索", self._show_search),
+            ("統計情報", self._show_stats),
+            ("テンプレート", self._show_templates),
             ("API設定", self._show_api_config),
             ("テーマ設定", self._show_theme_config),
         ]
@@ -208,7 +214,11 @@ class MainWindow(ctk.CTk):
 
     def _create_right_panel(self, parent):
         """右パネルの作成"""
-        # シーン作成エリア
+        # 上下分割
+        # 上部: シーン作成・編集エリア
+        # 下部: シーン一覧と生成結果
+
+        # 上部フレーム（シーン作成エリア）
         scene_frame = ctk.CTkFrame(parent)
         scene_frame.pack(fill="x", padx=10, pady=10)
 
@@ -248,15 +258,18 @@ class MainWindow(ctk.CTk):
         overview_label = ctk.CTkLabel(scene_frame, text="シーン概要:", font=ctk.CTkFont(size=14))
         overview_label.pack(anchor="w", pady=(0, 5))
 
-        self.scene_overview_text = ctk.CTkTextbox(scene_frame, height=80)
+        self.scene_overview_text = ctk.CTkTextbox(scene_frame, height=60)
         self.scene_overview_text.pack(fill="x", pady=(0, 10))
 
-        # 使用キャラクター
-        char_label = ctk.CTkLabel(scene_frame, text="使用キャラクター:", font=ctk.CTkFont(size=14))
+        # 使用キャラクター（複数選択対応）
+        char_label = ctk.CTkLabel(scene_frame, text="使用キャラクター（複数選択可）:", font=ctk.CTkFont(size=14))
         char_label.pack(anchor="w", pady=(0, 5))
 
-        self.scene_characters_menu = ctk.CTkOptionMenu(scene_frame, values=["なし"])
-        self.scene_characters_menu.pack(fill="x", pady=(0, 10))
+        # キャラクター選択フレーム
+        self.char_selection_frame = ctk.CTkScrollableFrame(scene_frame, height=80)
+        self.char_selection_frame.pack(fill="x", pady=(0, 10))
+
+        self.character_checkboxes = []
 
         # 生成ボタン
         generate_frame = ctk.CTkFrame(scene_frame, fg_color="transparent")
@@ -283,12 +296,49 @@ class MainWindow(ctk.CTk):
             width=130
         ).pack(side="left", padx=5)
 
-        # 結果表示
-        result_label = ctk.CTkLabel(parent, text="生成結果:", font=ctk.CTkFont(size=14))
-        result_label.pack(anchor="w", padx=10, pady=(10, 5))
+        # 下部フレーム（タブビュー：シーン一覧と生成結果）
+        bottom_tabview = ctk.CTkTabview(parent)
+        bottom_tabview.pack(fill="both", expand=True, padx=10, pady=(0, 10))
 
-        self.result_text = ctk.CTkTextbox(parent, wrap="word")
-        self.result_text.pack(fill="both", expand=True, padx=10, pady=(0, 10))
+        # 生成結果タブ
+        result_tab = bottom_tabview.add("生成結果")
+        self.result_text = ctk.CTkTextbox(result_tab, wrap="word")
+        self.result_text.pack(fill="both", expand=True, padx=5, pady=5)
+
+        # シーン一覧タブ
+        scenes_tab = bottom_tabview.add("シーン一覧")
+
+        # シーン一覧操作ボタン
+        scene_button_frame = ctk.CTkFrame(scenes_tab, fg_color="transparent")
+        scene_button_frame.pack(fill="x", pady=(0, 5))
+
+        ctk.CTkButton(
+            scene_button_frame,
+            text="読み込み",
+            command=self._load_selected_scene,
+            width=100
+        ).pack(side="left", padx=5)
+
+        ctk.CTkButton(
+            scene_button_frame,
+            text="削除",
+            command=self._delete_selected_scene,
+            fg_color="red",
+            width=100
+        ).pack(side="left", padx=5)
+
+        ctk.CTkButton(
+            scene_button_frame,
+            text="更新",
+            command=self._refresh_scene_list,
+            width=100
+        ).pack(side="left", padx=5)
+
+        # シーン一覧
+        self.scene_listbox = ctk.CTkScrollableFrame(scenes_tab)
+        self.scene_listbox.pack(fill="both", expand=True, padx=5, pady=5)
+
+        self.selected_scene_id = None
 
     def _initialize_api(self):
         """APIの初期化"""
@@ -418,6 +468,46 @@ class MainWindow(ctk.CTk):
             except Exception as e:
                 messagebox.showerror("エラー", f"エクスポートに失敗しました: {str(e)}")
 
+    def _show_search(self):
+        """検索ダイアログを表示"""
+        if not self.project_manager.current_project:
+            messagebox.showwarning("警告", "プロジェクトを開いてください")
+            return
+
+        dialog = SearchDialog(
+            self,
+            self.project_manager,
+            self._select_character,
+            self._load_scene_from_search
+        )
+        self.wait_window(dialog)
+
+    def _show_stats(self):
+        """統計情報を表示"""
+        if not self.project_manager.current_project:
+            messagebox.showwarning("警告", "プロジェクトを開いてください")
+            return
+
+        dialog = StatsDialog(self, self.project_manager.current_project)
+        self.wait_window(dialog)
+
+    def _show_templates(self):
+        """テンプレート管理ダイアログを表示"""
+        if not self.project_manager.current_project:
+            messagebox.showwarning("警告", "プロジェクトを開いてください")
+            return
+
+        current_style = self.project_manager.get_writing_style()
+        dialog = TemplateDialog(self, current_style, self._apply_template_style)
+        self.wait_window(dialog)
+
+    def _apply_template_style(self, style: Dict[str, Any]):
+        """テンプレートからスタイルを適用"""
+        try:
+            self.project_manager.set_writing_style(style)
+        except Exception as e:
+            messagebox.showerror("エラー", f"スタイルの適用に失敗しました: {str(e)}")
+
     def _show_api_config(self):
         """API設定ダイアログを表示"""
         dialog = APIConfigDialog(
@@ -472,8 +562,11 @@ class MainWindow(ctk.CTk):
         # 世界観表示
         self._refresh_world_display()
 
-        # キャラクター選択メニュー更新
-        self._refresh_character_menu()
+        # キャラクター選択チェックボックス更新
+        self._refresh_character_checkboxes()
+
+        # シーン一覧更新
+        self._refresh_scene_list()
 
     def _refresh_character_list(self):
         """キャラクターリストを更新"""
@@ -503,16 +596,118 @@ class MainWindow(ctk.CTk):
             text += f"概要: {world.get('overview', '不明')}\n"
             self.world_text.insert("1.0", text)
 
-    def _refresh_character_menu(self):
-        """キャラクター選択メニューを更新"""
-        characters = self.project_manager.get_characters()
-        char_names = [c.get('name', '不明') for c in characters]
-        if not char_names:
-            char_names = ["なし"]
+    def _refresh_character_checkboxes(self):
+        """キャラクター選択チェックボックスを更新"""
+        # 既存のチェックボックスを削除
+        for widget in self.char_selection_frame.winfo_children():
+            widget.destroy()
 
-        self.scene_characters_menu.configure(values=char_names)
-        if char_names:
-            self.scene_characters_menu.set(char_names[0])
+        self.character_checkboxes = []
+
+        # キャラクターのチェックボックスを作成
+        characters = self.project_manager.get_characters()
+        if not characters:
+            label = ctk.CTkLabel(
+                self.char_selection_frame,
+                text="キャラクターがありません",
+                text_color="gray"
+            )
+            label.pack(pady=10)
+        else:
+            for char in characters:
+                var = ctk.BooleanVar(value=False)
+                checkbox = ctk.CTkCheckBox(
+                    self.char_selection_frame,
+                    text=char.get('name', '不明'),
+                    variable=var
+                )
+                checkbox.pack(anchor="w", pady=2, padx=5)
+                self.character_checkboxes.append((char, var))
+
+    def _refresh_scene_list(self):
+        """シーン一覧を更新"""
+        # 既存のウィジェットを削除
+        for widget in self.scene_listbox.winfo_children():
+            widget.destroy()
+
+        # シーンを表示
+        scenes = self.project_manager.get_scenes()
+        if not scenes:
+            label = ctk.CTkLabel(
+                self.scene_listbox,
+                text="シーンがありません",
+                text_color="gray"
+            )
+            label.pack(pady=10)
+        else:
+            for scene in scenes:
+                btn = ctk.CTkButton(
+                    self.scene_listbox,
+                    text=scene.get('title', '無題'),
+                    command=lambda s=scene: self._select_scene(s),
+                    anchor="w"
+                )
+                btn.pack(fill="x", pady=2)
+
+    def _select_scene(self, scene):
+        """シーンを選択"""
+        self.selected_scene_id = scene.get('id')
+
+    def _load_selected_scene(self):
+        """選択されたシーンを読み込み"""
+        if not self.selected_scene_id:
+            messagebox.showwarning("警告", "読み込むシーンを選択してください")
+            return
+
+        scene = self.project_manager.get_scene_by_id(self.selected_scene_id)
+        if not scene:
+            messagebox.showerror("エラー", "シーンが見つかりません")
+            return
+
+        # シーン情報をフォームに読み込み
+        self.scene_title_entry.delete(0, "end")
+        self.scene_title_entry.insert(0, scene.get('title', ''))
+
+        self.scene_overview_text.delete("1.0", "end")
+        self.scene_overview_text.insert("1.0", scene.get('overview', ''))
+
+        self.result_text.delete("1.0", "end")
+        self.result_text.insert("1.0", scene.get('content', ''))
+
+        self.current_scene_content = scene.get('content', '')
+
+        messagebox.showinfo("成功", "シーンを読み込みました")
+
+    def _delete_selected_scene(self):
+        """選択されたシーンを削除"""
+        if not self.selected_scene_id:
+            messagebox.showwarning("警告", "削除するシーンを選択してください")
+            return
+
+        if messagebox.askyesno("確認", "本当にこのシーンを削除しますか？"):
+            try:
+                self.project_manager.delete_scene(self.selected_scene_id)
+                self.selected_scene_id = None
+                self._refresh_scene_list()
+                messagebox.showinfo("成功", "シーンを削除しました")
+            except Exception as e:
+                messagebox.showerror("エラー", f"削除に失敗しました: {str(e)}")
+
+    def _load_scene_from_search(self, scene: Dict[str, Any]):
+        """検索結果からシーンを読み込み"""
+        # シーン情報をフォームに読み込み
+        self.scene_title_entry.delete(0, "end")
+        self.scene_title_entry.insert(0, scene.get('title', ''))
+
+        self.scene_overview_text.delete("1.0", "end")
+        self.scene_overview_text.insert("1.0", scene.get('summary', ''))
+
+        self.result_text.delete("1.0", "end")
+        self.result_text.insert("1.0", scene.get('content', ''))
+
+        self.current_scene_content = scene.get('content', '')
+
+        messagebox.showinfo("成功", f"シーン「{scene.get('title', '無題')}」を読み込みました")
 
     def _select_character(self, character):
         """キャラクターを選択"""
@@ -531,7 +726,7 @@ class MainWindow(ctk.CTk):
             try:
                 self.project_manager.add_character(dialog.result)
                 self._refresh_character_list()
-                self._refresh_character_menu()
+                self._refresh_character_checkboxes()
                 messagebox.showinfo("成功", "キャラクターを追加しました")
             except Exception as e:
                 messagebox.showerror("エラー", f"追加に失敗しました: {str(e)}")
@@ -556,7 +751,7 @@ class MainWindow(ctk.CTk):
             try:
                 self.project_manager.add_character(dialog.result)
                 self._refresh_character_list()
-                self._refresh_character_menu()
+                self._refresh_character_checkboxes()
                 messagebox.showinfo("成功", "キャラクターを追加しました")
             except Exception as e:
                 messagebox.showerror("エラー", f"追加に失敗しました: {str(e)}")
@@ -579,7 +774,7 @@ class MainWindow(ctk.CTk):
             try:
                 self.project_manager.update_character(self.selected_character_id, dialog.result)
                 self._refresh_character_list()
-                self._refresh_character_menu()
+                self._refresh_character_checkboxes()
                 messagebox.showinfo("成功", "キャラクターを更新しました")
             except Exception as e:
                 messagebox.showerror("エラー", f"更新に失敗しました: {str(e)}")
@@ -595,7 +790,7 @@ class MainWindow(ctk.CTk):
                 self.project_manager.delete_character(self.selected_character_id)
                 self.selected_character_id = None
                 self._refresh_character_list()
-                self._refresh_character_menu()
+                self._refresh_character_checkboxes()
                 messagebox.showinfo("成功", "キャラクターを削除しました")
             except Exception as e:
                 messagebox.showerror("エラー", f"削除に失敗しました: {str(e)}")
@@ -794,15 +989,11 @@ class MainWindow(ctk.CTk):
         progress_dialog.show()
 
     def _get_selected_characters(self) -> List[Dict[str, Any]]:
-        """選択されたキャラクターを取得"""
-        # 現在は1つのキャラクターのみ選択可能
-        selected_name = self.scene_characters_menu.get()
-        if selected_name == "なし":
-            return []
+        """選択されたキャラクターを取得（複数選択対応）"""
+        selected_characters = []
 
-        characters = self.project_manager.get_characters()
-        for char in characters:
-            if char.get('name') == selected_name:
-                return [char]
+        for char, var in self.character_checkboxes:
+            if var.get():  # チェックボックスがオンの場合
+                selected_characters.append(char)
 
-        return []
+        return selected_characters
